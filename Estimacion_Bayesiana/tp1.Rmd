@@ -1,0 +1,177 @@
+---
+title: "Primer TP"
+author: "Alejandro Ramos Usaj"
+date: "5/28/2022"
+output: html_document
+---
+
+```{r}
+aceptacion_beta_binom <- function(x){
+  dbeta(x, 3, 5)*dbinom(50,300,x)
+}
+
+metropolis_hastings <- function(p_init, sigma, N, fun_aceptacion){
+  #Acumulo todos los p
+  p_acumulado <- vector('double', N)
+  
+  #El primer valor de p_n es el p inicial (p_init)
+  p_n <- p_init
+  
+  #Itero N pasos de la cadena de Markov
+  for(i in 1:N){
+    p_acumulado[i] <- p_n
+    #Genero un candidato w_n
+    w_n <- p_n + rnorm(1, 0, sigma)
+    prob_aceptacion <- fun_aceptacion(w_n)/fun_aceptacion(p_n)
+    r_n <- min(1,prob_aceptacion)
+    p_n <- sample(
+      c(w_n, p_n), #Sampleo entre el candidato (w_n) y el valor actual (p_n)
+      1, #Sampleo uno solo de los dos
+      prob = c(r_n, 1 - r_n) #Probabilidad de exito y fracaso
+    )
+  }
+  return(p_acumulado)
+}
+```
+
+
+## (a)
+
+Prior $Beta(3,5)$
+
+$cp^{\alpha-1}(1-p)^{\beta-1}L(p|x)$
+
+$cp^{\alpha-1}(1-p)^{\beta-1}kp^x(1-p)^{n-x}$
+
+Saco las constantes $c$ y $k$ que no dependen de $p$ y me queda
+
+$p^{\alpha-1}(1-p)^{\beta-1}p^x(1-p)^{n-x}$
+
+Sumo los exponentes
+
+$p^{\alpha-1+x}(1-p)^{\beta-1+n-x}$
+
+Reemplazamos por los valores dados
+
+$p^{3-1+50}(1-p)^{5-1+300-50}$
+
+Resuelvo
+
+$p^{52}(1-p)^{254}$
+
+Que en notacion beta seria 
+
+$Beta(53,255)$
+
+Estimador bayes es $\mathbb{E}(X) = \frac{\alpha}{\beta+\alpha}=\frac{53}{255+53}=0.17$
+
+## (b)
+
+```{r}
+output <- metropolis_hastings(
+  0.5,
+  0.01,
+  50000,
+  aceptacion_beta_binom
+)
+```
+
+Graficamos para tratar de elegir el M
+
+```{r}
+plot(output,
+     type = 'l')
+```
+Hago zoom en los primeros 10 mil valores
+
+```{r}
+plot(output,
+     type = 'l',
+     xlim = c(0,10000))
+```
+
+Excluimos los primeros 5000 datos 
+
+```{r}
+output_filtrado <- output[5001:length(output)]
+```
+
+
+## (c)
+
+Graficamos la densidad de la distribucion beta posterior analitica y la densidad de la distribucion posterior aproximada
+
+```{r}
+plot(
+  seq(0,1,0.001),
+  dbeta(
+    seq(0,1,0.001),
+    53, 255
+  ),
+  type = 'l',
+  col = 'red',
+  lty = 'dashed'
+)
+lines(density(output_filtrado))
+```
+Comparamos la esperanza de la distribucion beta posterior analitica que es `r 53/(255+53)` mientras que la media de la distribucion posterior aproximada es `r mean(output)`.
+
+# 2
+
+```{r}
+aceptacion_unif_multinom <- function(x){
+  dunif(x, 0, 1)*dmultinom(
+      c(13,210,240), 
+      463,
+      prob = c(
+      x^2, 2*x*(1-x), (1-x)^2  
+      )
+    )
+}
+
+output_2 <- metropolis_hastings(
+  0.5, 
+  0.01,
+  50000,
+  aceptacion_unif_multinom
+)
+```
+
+
+Graficamos el total de la simulacion
+
+```{r}
+plot(output_2,
+     type = 'l')
+```
+Hago zoom en los primeros 10 mil valores
+
+```{r}
+plot(output_2,
+     type = 'l',
+     xlim = c(0,10000))
+```
+
+Excluimos los primeros 5000 datos 
+
+```{r}
+output2_filtrado <- output_2[5001:length(output_2)]
+```
+
+
+## (c)
+
+Graficamos la densidad de la distribucion beta posterior analitica y la densidad de la distribucion posterior aproximada
+
+```{r}
+plot(
+  density(output2_filtrado)
+  )
+```
+
+
+
+
+
+
+
