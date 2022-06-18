@@ -1,0 +1,225 @@
+---
+title: "clase_mlg"
+author: "Gonzalo Chebi"
+date: "6/11/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+```
+
+## Regresion Logistica
+
+
+1. Exploramos la data. Graficos
+```{r}
+candy = read.csv('candy-data.csv') %>% 
+  mutate(winpercent = winpercent / 100)
+  # head()
+```
+
+```{r}
+candy %>% colnames()
+```
+
+
+
+
+
+Las golosinas frutales / no frutales tienen chocolate?
+```{r}
+candy %>% 
+  group_by(fruity) %>% 
+  summarise(prop_chocolate = mean(chocolate))
+```
+
+Podemos hacer un grafico de barras con ggplot
+```{r}
+candy %>% 
+  group_by(fruity) %>% 
+  summarise(prop_chocolate = mean(chocolate)) %>% 
+  ggplot(aes(x = fruity, y = prop_chocolate, fill = fruity)) +
+  geom_bar(stat = 'identity') +
+  geom_text(aes(x= fruity, y = prop_chocolate, label = scales::percent(prop_chocolate)), vjust = 0, size = 5) + 
+  theme(legend.position = 'none')
+
+```
+
+
+Hagamos lo mismo con todas las variables binarias
+
+```{r}
+candy %>% 
+  pivot_longer(c("fruity", "caramel", "peanutyalmondy", "nougat", "crispedricewafer", "hard", "bar", "pluribus"), names_to = 'caracteristica', values_to = 'valor') %>% 
+  # select(-c("sugarpercent", "pricepercent", "winpercent")) %>% 
+  group_by(caracteristica, valor) %>% 
+  mutate(valor = factor(valor)) %>% 
+  summarise(prop_chocolate = mean(chocolate)) %>% 
+  ggplot(aes(x = valor, y = prop_chocolate, fill = valor)) +
+  geom_bar(stat = 'identity') +
+  geom_text(aes(x= valor, y = prop_chocolate, label = scales::percent(prop_chocolate)), vjust = 0, size = 3) + 
+  facet_wrap(~ caracteristica, ncol = 4) +
+  theme(legend.position = 'none')
+  
+```
+
+Para las variables continuas, podemos estimar su densidad en las golosinas con y sin chocolate
+```{r}
+candy %>% 
+  pivot_longer(c("sugarpercent", "pricepercent", "winpercent"), names_to = 'caracteristica', values_to = 'valor') %>% 
+  mutate(chocolate = factor(chocolate)) %>% 
+  ggplot(aes(x = valor, fill = chocolate, color = chocolate)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~caracteristica, scales = 'free')
+  
+```
+
+
+2. Modelado
+
+Division en entrenamiento / testeo
+```{r}
+set.seed(1234)
+num_train = floor(nrow(candy) * 2/3) #numero de filas de entrenamiento
+train_ids = candy %>% sample_n(num_train) %>% pull(competitorname) #ids de entrenamiento
+candy_train = candy %>% filter(competitorname %in% train_ids)
+candy_test = candy %>% filter(!competitorname %in% train_ids)
+
+```
+
+
+
+
+```{r, echo=FALSE}
+
+fit  = glm(chocolate ~ sugarpercent + pricepercent + winpercent , data=candy_train, family=binomial) 
+fit %>% summary()
+```
+
+
+```{r, echo=FALSE}
+
+fit2  = glm(chocolate ~ fruity +caramel + peanutyalmondy + nougat + crispedricewafer + hard + bar + pluribus , data=candy_train, family=binomial) 
+fit2 %>% summary()
+```
+```{r , echo=FALSE}
+
+fit3  = glm(chocolate ~ fruity +caramel + peanutyalmondy + nougat + crispedricewafer + hard + bar + pluribus + sugarpercent + pricepercent + winpercent , data=candy_train, family=binomial) 
+fit3 %>% summary()
+```
+```{r pressure, echo=FALSE}
+
+fit4  = glm(chocolate ~ fruity + winpercent , data=candy_train, family=binomial) 
+fit4 %>% summary()
+```
+
+```{r}
+
+# Una perdida que podemos usar es la menos log verosimilitud
+menos_log_vermosimilitud = function(y_verdaderos, probas_predichas, eps = 0.001){
+  for(i in 1:length(probas_predichas)){
+    probas_predichas[i] = max(eps, min(probas_predichas[i], 1 - eps))
+  }
+  verosimilitud_ind = c()
+  for(i in 1:length(y_verdaderos)){
+    verosimilitud_ind = c(verosimilitud_ind, - y_verdaderos[i] * log(probas_predichas[i]) - (1 - y_verdaderos[i]) * log(1 - probas_predichas[i]))
+  }
+  return(mean(verosimilitud_ind))
+}
+
+print(menos_log_vermosimilitud(candy_test$chocolate, predict(fit, newdata = candy_test, type = 'response')))
+print(menos_log_vermosimilitud(candy_test$chocolate, predict(fit2, newdata = candy_test, type = 'response')))
+print(menos_log_vermosimilitud(candy_test$chocolate, predict(fit3, newdata = candy_test, type = 'response')))
+print(menos_log_vermosimilitud(candy_test$chocolate, predict(fit4, newdata = candy_test, type = 'response')))
+
+
+#Quiero minimizar esto 
+
+# Me quedo con fit4
+
+```
+
+
+
+
+2. Beta regression
+```{r}
+library(betareg)
+betafit  = betareg(winpercent ~ chocolate + fruity +caramel + peanutyalmondy + nougat + crispedricewafer + hard + bar + pluribus + pricepercent + sugarpercent , data=candy_train) 
+betafit %>% summary()
+```
+
+
+
+3. Regresion poisson
+```{r}
+velo = read.csv('comptagesvelo2015.csv') %>% 
+    mutate(dia = parse_date(Date, "%d/%m/%Y"))
+
+```
+
+
+
+```{r}
+nombres_bicisendas = velo %>% 
+  select(-c('Date', 'X', 'dia')) %>% 
+  colnames()
+
+velo %>% 
+  pivot_longer(nombres_bicisendas) %>% 
+  # filter(name == 'Berri1') %>% 
+  ggplot(aes(x = dia, y = value)) +
+  geom_line() +
+  facet_wrap(~ name)
+```
+```{r}
+velo %>% 
+  pivot_longer(nombres_bicisendas) %>% 
+  filter(name == 'Berri1') %>%
+  ggplot(aes(x = dia, y = value)) +
+  geom_line() +
+  facet_wrap(~ name)
+```
+
+
+```{r}
+set.seed(1234)
+n_train = floor(nrow(velo) * 2/3)
+dias_train = velo %>% sample_n(n_train) %>% pull(dia)
+
+velo_train = velo %>% filter(dia %in% dias_train)
+velo_test = velo %>% filter(!dia %in% dias_train)
+```
+
+
+```{r}
+velo_fit = glm(Berri1 ~ Boyer, data = velo_train, family = poisson)
+velo_fit %>% summary()
+```
+```{r}
+poisson_verosimilitud = function(y_verdaderos, lambdas_predichos){
+  verosimilitud_ind = c()
+  for(i in 1:length(y_verdaderos)){
+    verosimilitud_ind = c(verosimilitud_ind, -lambdas_predichos[i] + y_verdaderos[i] * log(lambdas_predichos[i]))
+  }
+  return(mean(verosimilitud_ind))
+}
+```
+
+```{r}
+print(poisson_verosimilitud(velo_test$Berri1, rep(mean(velo_test$Berri1), length(velo_test$Berri1))))
+print(poisson_verosimilitud(velo_test$Berri1, predict(velo_fit, newdata = velo_test, type = 'response')))
+print(poisson_verosimilitud(velo_test$Berri1, velo_test$Berri1))
+```
+
+```{r}
+velo_fit = glm(Berri1 ~ Boyer, data = velo_train, family = poisson)
+velo_fit %>% summary()
+```
+
+
+
+
