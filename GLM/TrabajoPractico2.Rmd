@@ -76,25 +76,11 @@ predicciones <- predict(m, testeo)
 m2 <- polr( as.factor(Q9) ~ age, data = entrenamiento, method = "logistic")
 summary(m2)
 
+df_25 <- data.frame(age = c(25))
 # hago las predicciones con el modelo de testeo
-predicciones2 <- predict(m2, testeo)
-hist(as.numeric(predicciones2))
-table(predicciones2)
+predicciones2 <- predict(m2, df_25, type = "p")
 
-# estimo la probabilidad de que una persona de 25 anos este al menos de acuerdo con la frase "me gustan las armas"
-
-# viendo las predicciones2, es claro que la probabiliad estimada es de 1
-# el codigo para corroborarlo seria el siguiente
-predicciones3 <- predict(m2, testeo, type = "p")
-
-max.prob <- rep(NaN, nrow(testeo))
-
-for (i in 1:length(max.prob)) {
-     index.max <- which.max(predicciones[i,])
-     max.prob[i] <- index.max[[1]]}
-
-table(max.prob)
-
+p <- sum(predicciones2[0:5])
 ```
 
 
