@@ -125,8 +125,23 @@ predicciones <- round(predict(m3, testeo))
 #9
 
 ```{r}
+# veo los resultados de las funciones de perdidas anterior
+funcion_de_perdida
+
+# obtengo el resultado de la funcion de perdida en el modelo lineal
+funcion_de_perdida_lineal <- sum(abs(as.numeric(testeo$Q28) - predicciones))/nrow(testeo)
+
+# parece ser que el modelo lineal presenta una menor funcion de perdida que el modelo de regresion ordinal con cualquiera de sus 4 link functions. Por lo que se prefiere el modelo de regresion lineal para estos datos.
+```
+
+#10
+
+```{r}
+
 
 ```
+
+
 
 
 
