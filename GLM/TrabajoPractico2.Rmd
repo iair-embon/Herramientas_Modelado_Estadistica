@@ -1,0 +1,88 @@
+---
+title: "Trabajo Practico 2"
+author: "Iair Embon & Alejandro Ramos Usaj"
+date: '2022-06-18'
+output: html_document
+---
+
+
+#1 
+
+```{r}
+# cargo los datos
+root <- rprojroot::is_rstudio_project
+basename(getwd())
+
+data <- read.csv(root$find_file("GLM/encuesta.csv"))
+
+# divido en entrenamiento y testeo 
+library(dplyr)
+
+entrenamiento <- data %>%
+  slice_sample(prop = 0.8)
+
+testeo <- data %>%
+  slice(-pull(entrenamiento,X))
+
+```
+
+#2 
+
+>Llamamos Q a la pregunta Q28
+
+#3
+
+>El problema teorico de usar una regresion lineal es que la veriable de  respuestas Y no es escalar, es decir, las distancias entre cada unidad no son equivaletes. 
+Segun Agresti (2015), el modelo de regresion lineal podria utilizarse para ver que variables afectan Y pero presentaria algunas limitaciones, tales como no obtener un claro punto de corte para cada categoria J, (VER PAG 214, NO ENTIENDO NADA JAJA) 
+
+>El porblema teorico al momento de usar una regresion multinomial para estos datos seria que no aprovecharia la caracteristica ordinal de la variable de respuesta.
+Un modelo ordinal utilizaria muchos menos parametros, ya que el slope no dependeria de cada categoria como sucede en el modelo multinomial.
+
+#4
+
+>Este modelo supone que las respuestas Y corresponden a una variable del tipo ordinal con J categorias. Se puede usar con una funcion de link probit o logit, siendo la variable a predecir la probabilidad acumulada de Y menor o igual a un determinado J. En este modelo, la intercept es diferente para cada J, mientras que el slope es el mismo.
+
+#5
+
+```{r}
+library(MASS)
+
+# exloro la variable age
+hist(entrenamiento$age)
+# hay una edad que tiene 353 años, y uno de 99. quizas es mejor sacar esos dos
+
+# exploro Q28
+hist(entrenamiento$Q28)
+table(entrenamiento$Q28)
+# es raro porque hay 24 casos con respuesta 0,
+
+# exploro Q28 en funcion de la edad.
+plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
+
+# corro el modelo
+m <- polr( as.factor(Q28) ~ age, data = entrenamiento, method = "logistic")
+summary(m)
+
+# predigo Q28 en funcion de la edad en el dataframe de testeo
+predicciones <- predict(m, testeo)
+hist(as.numeric(predicciones))
+table(predicciones)
+
+# corro el modelo usando una funcion de link loglog
+m2 <- polr( as.factor(Q28) ~ age, data = entrenamiento, method = "loglog")
+summary(m2)
+
+# predigo Q28 en funcion de la edad en el dataframe de testeo
+predicciones <- predict(m2, testeo)
+hist(as.numeric(predicciones))
+table(predicciones)
+```
+
+
+
+
+
+
+
+
+
