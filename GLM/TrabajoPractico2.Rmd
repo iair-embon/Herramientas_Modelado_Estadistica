@@ -46,6 +46,7 @@ Un modelo ordinal utilizaria muchos menos parametros, ya que el slope no depende
 
 ```{r}
 library(MASS)
+library(tidyverse)
 
 # exloro la variable age
 hist(entrenamiento$age)
@@ -60,24 +61,70 @@ table(entrenamiento$Q28)
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
 
 # corro el modelo
-m <- polr( as.factor(Q28) ~ age, data = entrenamiento, method = "logistic")
+m <- polr(as.factor(Q28) ~ age, data = entrenamiento, method = "logistic")
 summary(m)
 
-# predigo Q28 en funcion de la edad en el dataframe de testeo
+# predigo Q28 en funcion de la edad
 predicciones <- predict(m, testeo)
-hist(as.numeric(predicciones))
-table(predicciones)
 
-# corro el modelo usando una funcion de link loglog
-m2 <- polr( as.factor(Q28) ~ age, data = entrenamiento, method = "loglog")
-summary(m2)
-
-# predigo Q28 en funcion de la edad en el dataframe de testeo
-predicciones <- predict(m2, testeo)
-hist(as.numeric(predicciones))
-table(predicciones)
 ```
 
+#6
+
+```{r}
+# primero corremos el modelo
+m2 <- polr( as.factor(Q9) ~ age, data = entrenamiento, method = "logistic")
+summary(m2)
+
+# hago las predicciones con el modelo de testeo
+predicciones2 <- predict(m2, testeo)
+hist(as.numeric(predicciones2))
+table(predicciones2)
+
+# estimo la probabilidad de que una persona de 25 anos este al menos de acuerdo con la frase "me gustan las armas"
+
+# viendo las predicciones2, es claro que la probabiliad estimada es de 1
+# el codigo para corroborarlo seria el siguiente
+predicciones3 <- predict(m2, testeo, type = "p")
+
+max.prob <- rep(NaN, nrow(testeo))
+
+for (i in 1:length(max.prob)) {
+     index.max <- which.max(predicciones[i,])
+     max.prob[i] <- index.max[[1]]}
+
+table(max.prob)
+
+```
+
+
+#7
+
+```{r}
+
+# vamos a elegir una link function basados la que tenga un resultado menor en la funcion de perdida
+
+# corro varios modelos cada uno con su link function
+link_functions <- c("logistic", "probit", "loglog", "cauchit")
+
+varios_modelos <- link_functions %>%
+  map(
+  ~ polr(as.factor(Q28) ~ age, data = entrenamiento, method = .x)
+)
+
+# realizo predicciones en el df de testeo y saco la funcion de perdida del ejercicio 7
+funcion_de_perdida <- rep(NaN, length(varios_modelos))
+
+for (i in 1:length(varios_modelos)) {
+  predicciones <- predict(varios_modelos[[i]], testeo)
+  funcion_de_perdida[i] <- sum(abs(as.numeric(testeo$Q28) - as.numeric(predicciones)))/nrow(testeo)
+}
+
+index_min <- which.min(funcion_de_perdida)
+
+# la link function que tiene menor error segun la funcion de perdida implementada es:
+link_functions[index_min]
+```
 
 
 
