@@ -122,6 +122,13 @@ summary(m3)
 predicciones <- round(predict(m3, testeo))
 ```
 
+#9
+
+```{r}
+
+```
+
+
 
 
 
