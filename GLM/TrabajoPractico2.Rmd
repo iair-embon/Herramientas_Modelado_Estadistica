@@ -112,6 +112,15 @@ index_min <- which.min(funcion_de_perdida)
 link_functions[index_min]
 ```
 
+#8
+
+```{r}
+# corro el modelo lineal
+m3 <- lm(Q28 ~ age, data = entrenamiento)
+summary(m3)
+
+predicciones <- round(predict(m3, testeo))
+```
 
 
 
