@@ -9,6 +9,8 @@ output: html_document
 #1 
 
 ```{r}
+set.seed(1234)
+
 # cargo los datos
 root <- rprojroot::is_rstudio_project
 basename(getwd())
@@ -17,6 +19,10 @@ data <- read.csv(root$find_file("GLM/encuesta.csv"))
 
 # divido en entrenamiento y testeo 
 library(dplyr)
+
+
+#Correr esta linea por si se quieren retirar todos los valores que tienen 0 para las columnas que corresponden a una pregunta
+# data <- data %>% filter(if_any(starts_with('Q'), ~ . > 0)) 
 
 entrenamiento <- data %>%
   slice_sample(prop = 0.8)
@@ -60,8 +66,6 @@ table(entrenamiento$Q28)
 # es raro porque hay 24 casos con respuesta 0,
 entrenamiento <- entrenamiento %>% filter(Q28 != 0) #Filtramos los datos con valor de respuesta 0
 
-#Correr esta linea por si se quieren retirar todos los valores que tienen 0 para las columnas que corresponden a una pregunta
-# entrenamiento %>% filter(if_any(starts_with('Q'), ~ . > 0)) 
 
 # exploro Q28 en funcion de la edad.
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
@@ -92,8 +96,26 @@ sum(predicciones_q9[0:5])
 
 #7
 
-```{r}
+Defino la funcion de perdida
 
+```{r}
+funcion_perdida <- function(modelo, test_set, variable_respuesta){
+  predicciones <- predict(modelo, test_set)
+  diferencia_absoluta <- abs(predicciones - variable_respuesta)
+  return(diferencia_absoluta)
+}
+```
+
+Evaluamos la funcion con los dos modelos creados hasta ahora.
+
+```{r}
+funcion_perdida(modelo_q28, testeo, testeo$Q28)
+funcion_perdida(modelo_q9, testeo, testeo$Q9)
+```
+
+
+
+```{r}
 # vamos a elegir una link function basados la que tenga un resultado menor en la funcion de perdida
 
 # corro varios modelos cada uno con su link function
