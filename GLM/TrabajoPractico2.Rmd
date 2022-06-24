@@ -50,23 +50,24 @@ library(tidyverse)
 
 # exloro la variable age
 hist(entrenamiento$age)
+
 # hay una edad que tiene 353 años, y uno de 99. quizas es mejor sacar esos dos
 
 # exploro Q28
 hist(entrenamiento$Q28)
 table(entrenamiento$Q28)
 # es raro porque hay 24 casos con respuesta 0,
+entrenamiento <- entrenamiento %>% filter(Q28 != 0) #Filtramos los datos con valor de respuesta 0
 
 # exploro Q28 en funcion de la edad.
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
 
 # corro el modelo
-m <- polr(as.factor(Q28) ~ age, data = entrenamiento, method = "logistic")
-summary(m)
+modelo_q28 <- polr(as.factor(Q28) ~ age, data = entrenamiento, method = "logistic")
+summary(modelo_q28)
 
 # predigo Q28 en funcion de la edad
-predicciones <- predict(m, testeo)
-
+predicciones <- predict(modelo_q28, testeo)
 ```
 
 #6
