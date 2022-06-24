@@ -67,21 +67,22 @@ modelo_q28 <- polr(as.factor(Q28) ~ age, data = entrenamiento, method = "logisti
 summary(modelo_q28)
 
 # predigo Q28 en funcion de la edad
-predicciones <- predict(modelo_q28, testeo)
+predicciones_q28 <- predict(modelo_q28, testeo)
 ```
 
 #6
 
 ```{r}
 # primero corremos el modelo
-m2 <- polr( as.factor(Q9) ~ age, data = entrenamiento, method = "logistic")
-summary(m2)
+modelo_q9 <- polr( as.factor(Q9) ~ age, data = entrenamiento, method = "logistic")
+summary(modelo_q9)
 
 df_25 <- data.frame(age = c(25))
 # hago las predicciones con el modelo de testeo
-predicciones2 <- predict(m2, df_25, type = "p")
+predicciones_q9 <- predict(modelo_q9, df_25, type = "p")
 
-p <- sum(predicciones2[0:5])
+#Resultado del ejercicio, sumo la probabilidad para todas las opciones menores o iguales a 4
+sum(predicciones_q9[0:5])
 ```
 
 
