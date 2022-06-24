@@ -101,7 +101,8 @@ Defino la funcion de perdida
 ```{r}
 funcion_perdida <- function(predicciones, variable_respuesta){
   diferencia_absoluta <- abs(predicciones - variable_respuesta)
-  return(diferencia_absoluta)
+  perdida <- sum(diferencia_absoluta)/length(variable_respuesta)
+  return(perdida)
 }
 ```
 
@@ -175,9 +176,15 @@ predicciones_linear_q28 <- pred_linear_fun(predict(modelo_lineal_q28, testeo))
 
 ```{r}
 # veo los resultados de las funciones de perdidas anterior
-funcion_de_perdida(
-  
+perdida_lineal_q28 <- funcion_de_perdida(
+  predicciones_linear_q28,
+  testeo$Q28
 )
+perdida_ordinal_q28 <- funcion_de_perdida(
+  predicciones_q28,
+  testeo$Q28
+)
+
 
 # obtengo el resultado de la funcion de perdida en el modelo lineal
 funcion_de_perdida_lineal <- sum(abs(as.numeric(testeo$Q28) - predicciones))/nrow(testeo)
