@@ -52,12 +52,16 @@ library(tidyverse)
 hist(entrenamiento$age)
 
 # hay una edad que tiene 353 años, y uno de 99. quizas es mejor sacar esos dos
+entrenamiento <- entrenamiento %>% filter(age < 99)
 
 # exploro Q28
 hist(entrenamiento$Q28)
 table(entrenamiento$Q28)
 # es raro porque hay 24 casos con respuesta 0,
 entrenamiento <- entrenamiento %>% filter(Q28 != 0) #Filtramos los datos con valor de respuesta 0
+
+#Correr esta linea por si se quieren retirar todos los valores que tienen 0 para las columnas que corresponden a una pregunta
+# entrenamiento %>% filter(if_any(starts_with('Q'), ~ . > 0)) 
 
 # exploro Q28 en funcion de la edad.
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
