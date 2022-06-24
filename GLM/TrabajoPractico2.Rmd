@@ -142,12 +142,34 @@ link_functions[index_min]
 
 #8
 
+Primero armo y ajusto el modelo lineal
+
 ```{r}
 # corro el modelo lineal
-m3 <- lm(Q28 ~ age, data = entrenamiento)
-summary(m3)
+modelo_lineal_q28 <- lm(Q28 ~ age, data = entrenamiento)
+summary(modelo_lineal_q28)
+```
 
-predicciones <- round(predict(m3, testeo))
+
+En segundo lugar genero una funcion que tome las predicciones del modelo y las acote a los valores ordinales que puede tomar la variable de respuesta.
+
+```{r}
+pred_linear_fun <- function(predicciones){
+  predicciones_redondeadas <- round(predicciones)
+  #Redondeo a 1 si da menor que 1 y a 5 si da mayor que 5
+  predicciones_ajustadas <- sapply(
+    predicciones_redondeadas,
+     function(x) ifelse(x < 1, 1, 
+                        ifelse(x > 5, 5, x))
+     )
+  return(predicciones_ajustadas)
+}
+```
+
+Implemento la funcion con las predicciones del modelo lineal
+
+```{r}
+predicciones_linear_q28 <- pred_linear_fun(predict(modelo_lineal_q28, testeo))
 ```
 
 #9
