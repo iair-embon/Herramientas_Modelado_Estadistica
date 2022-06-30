@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-#1 
+# 1 
 
 ```{r}
 set.seed(1234)
@@ -32,11 +32,11 @@ testeo <- data %>%
 
 ```
 
-#2 
+# 2 
 
 >Llamamos Q a la pregunta Q28
 
-#3
+# 3
 
 >El problema teorico de usar una regresion lineal es que la veriable de respuestas Y no es escalar, es decir, las distancias entre cada unidad no son equivaletes y la respuesta Y no es continua. 
 Segun Agresti (2015), el modelo de regresion lineal podria utilizarse para ver que variables afectan Y pero presentaria algunas limitaciones. En primer lugar si la respuesta es verbal en lugar de numerica asignar valores numericos a categorias como 'Totalmente en desacuerdo' o 'Totalmente de acuerdo' es muy arbitrario porque se podria decir que uno de los extremos representa el 1 y el otro el 5 o uno de los extremos representa el 1 y el otro el 10 o el 7 o cualquier otro numero. En segundo lugar si asumimos que las respuestas ordinales responden a una variable continua latente, distintos valores de la variable latente puede corresponderse con un mismo valor de la variable latente siendo que cualquier valor dentro del rando de dos umbrales va a corresponderse con el mismo valor ordinal aunque tengan distinto valor de la variable latente. En tercer lugar el modelo lineal comun no otorga probabilidades estimadas a cada categoria ordinal por lo que no seria claro como ordinalizar una prediccion numerica continua. Por ultimo la variabilidad de los datos no es constante para la variable de respuesta, una variable ordinal tiene poca variabilidad cuando dados los valores de la covariada la variable de respuesta se ubica en los extremos de la escala ordinal lo cual esta relacionado con el hecho de que los umbrales para los extremos no estan acotados en la distribucion de la variable latente. 
@@ -44,11 +44,11 @@ Segun Agresti (2015), el modelo de regresion lineal podria utilizarse para ver q
 
 >El porblema teorico al momento de usar una regresion multinomial para estos datos seria que no aprovecharia la caracteristica ordinal de la variable de respuesta. Un modelo ordinal tiene una ordenada dada por la categoria ordinal pero los coeficientes son los mismos independientemente de la categoria ya que se asume que el efecto de las covariadas es el mismo para cada probabilidad acumulada. De esta manera un modelo ordinal utilizaria muchos menos parametros, ya que los coeficientes no dependen de cada categoria como sucede en el modelo multinomial porque no se puede utilizar una estructura de probabilidad acumulada como la que se trabaja en un modelo ordinal. 
 
-#4
+# 4
 
 >Este modelo supone que las respuestas Y corresponden a una variable del tipo ordinal con J categorias. A diferencia del modelo multinomial clasico donde se quiere calcular, en ultima instancia, la probabilidad de pertenecer a cada categoria. En este caso aprovechamos la estructura ordinal asumiendo que existe una variable latente que desconocemos a partir de la cual con determinados umbrales numericos se construyeron las respuestas ordinales observadas. La probabilidad de que la respuesta y sea igual a la categoria ordinal j puede pensarse como una probabilidad acumulada. Lo que se intenta modelar entonces es la probabilidad acumulada de que la respuesta sea menor o igual a j dado determinado efecto de las covariadas y determinados puntos de corte, ambos parametros a estimar. Se puede repensar entonces la probabilidad de que la respuesta sea menor o igual a la categoria j como la probabilidad de que el valor de la variable latente sea menor o igual al punto de corte de la categoria j es decir la funcion de probabilidad acumulada. Si la funcion de probabilidad acumulada asumimos que es la logistica standard entonces la funcion de link (que es la inversa de probabilidad acumulada) es el logit y si asumimos que es la acumulada de la normal entonces utilizamos como link la funcion probit. En este modelo, la intercept es diferente para cada J, mientras que el slope es el mismo.
 
-#5
+# 5
 
 ```{r}
 library(MASS)
@@ -71,20 +71,21 @@ entrenamiento <- entrenamiento %>% filter(Q28 != 0) #Filtramos los datos con val
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
 
 # corro el modelo
-modelo_q28 <- polr(as.factor(Q28) ~ age, data = entrenamiento, method = "logistic")
+modelo_q28 <- polr(as.factor(Q28) ~ age, data = entrenamiento)
 summary(modelo_q28)
 
 # predigo Q28 en funcion de la edad
 predicciones_q28 <- predict(modelo_q28, testeo)
 ```
 
-#6
+# 6
 
 ```{r}
 # primero corremos el modelo
-modelo_q9 <- polr( as.factor(Q9) ~ age, data = entrenamiento, method = "logistic")
+modelo_q9 <- polr( as.factor(Q9) ~ age, data = entrenamiento)
 summary(modelo_q9)
 
+#armo el dataframe de input
 df_25 <- data.frame(age = c(25))
 # hago las predicciones con el modelo de testeo
 predicciones_q9 <- predict(modelo_q9, df_25, type = "p")
@@ -94,7 +95,7 @@ sum(predicciones_q9[0:5])
 ```
 
 
-#7
+# 7
 
 Defino la funcion de perdida
 
@@ -113,34 +114,7 @@ funcion_perdida(predicciones_q28, testeo$Q28)
 funcion_perdida(predicciones_q9, testeo$Q9)
 ```
 
-
-
-```{r}
-# vamos a elegir una link function basados la que tenga un resultado menor en la funcion de perdida
-
-# corro varios modelos cada uno con su link function
-link_functions <- c("logistic", "probit", "loglog", "cauchit")
-
-varios_modelos <- link_functions %>%
-  map(
-  ~ polr(as.factor(Q28) ~ age, data = entrenamiento, method = .x)
-)
-
-# realizo predicciones en el df de testeo y saco la funcion de perdida del ejercicio 7
-funcion_de_perdida <- rep(NaN, length(varios_modelos))
-
-for (i in 1:length(varios_modelos)) {
-  predicciones <- predict(varios_modelos[[i]], testeo)
-  funcion_de_perdida[i] <- sum(abs(as.numeric(testeo$Q28) - as.numeric(predicciones)))/nrow(testeo)
-}
-
-index_min <- which.min(funcion_de_perdida)
-
-# la link function que tiene menor error segun la funcion de perdida implementada es:
-link_functions[index_min]
-```
-
-#8
+# 8
 
 Primero armo y ajusto el modelo lineal
 
@@ -172,7 +146,7 @@ Implemento la funcion con las predicciones del modelo lineal
 predicciones_linear_q28 <- pred_linear_fun(predict(modelo_lineal_q28, testeo))
 ```
 
-#9
+# 9
 
 ```{r}
 # veo los resultados de las funciones de perdidas anterior
@@ -185,22 +159,88 @@ perdida_ordinal_q28 <- funcion_de_perdida(
   testeo$Q28
 )
 
-
-# obtengo el resultado de la funcion de perdida en el modelo lineal
-funcion_de_perdida_lineal <- sum(abs(as.numeric(testeo$Q28) - predicciones))/nrow(testeo)
-
-# parece ser que el modelo lineal presenta una menor funcion de perdida que el modelo de regresion ordinal con cualquiera de sus 4 link functions. Por lo que se prefiere el modelo de regresion lineal para estos datos.
+c(
+  'Perdida Lineal' = perdida_lineal_q28,
+  'Perdida Ordinal' = perdida_ordinal_q28
+)
 ```
 
-#10
+
+Parece ser que el modelo lineal presenta una menor funcion de perdida que el modelo de regresion ordinal.
+
+# 10
+
+
+
+
+El modelo de regresion ordinal puede utilizar diferentes funciones de link por lo que vamos implementar una funcion que pruebe todas las posbiles funciones de link para cada combinacion de covariadas. 
 
 ```{r}
-
-
+comparacion_metodos <- function(formula){
+  # corro varios modelos cada uno con su link function
+  link_functions <- c("logistic", "probit", "loglog", "cauchit")
+  
+  
+  varios_modelos <- link_functions %>%
+    map(
+    ~ polr(formula, data = entrenamiento, method = .x)
+  ) %>%
+    map(
+      ~ funcion_de_perdida(predict(.x, testeo), testeo$Q28)
+    )
+    
+  
+  # realizo predicciones en el df de testeo y uso la funcion de perdida del ejercicio 7
+  funcion_de_perdida <- rep(NaN, length(varios_modelos))qa
+  
+  for (i in 1:length(varios_modelos)) {
+    predicciones <- predict(varios_modelos[[i]], testeo)
+    funcion_de_perdida[i] <- sum(abs(as.numeric(testeo$Q28) - as.numeric(predicciones)))/nrow(testeo)
+  }
+  
+  index_min <- which.min(funcion_de_perdida)
+  
+  # la link function que tiene menor error segun la funcion de perdida implementada es:
+  link_functions[index_min]
+}
 ```
 
 
+# 12
 
+En primer lugar generamos varias muestras aleatorias de nuestro dataframe, con distinto n pero sin repeticion. Para eso armamos una distribucion uniforme entre los dos rangos de valores que consideramos apropiados. Vamos a usar 1000 muestras a partir de un rango de entre 50 y 5000 datos. 
+
+Armamos para esto una funcion la cual, en cada iteracion saca una muestra de la distribucion uniforme que definimos y seleciona una muestra aleatoria de nuestros datos con ese muestral. 
+
+```{r}
+random_sampling_fun <- function(){
+  random_n <- runif(50,5000)
+  datos_sampleados <- entrenamiento %>% dplyr::slice_sample(random_n)
+  return(datos_sampleados)
+}
+```
+
+Generamos otra funcion que va a utilizar los datos creados por la funcion `random_sampling_fun` y los va a usar para ajustar un modelo de regresion logistica calculando la exactitud. La exactitud siempre se calcula sobre el conjunto de testeo que tiene un tamaño fijo. De esta manera la funcion otorga un vector de dos valores, uno indicando la cantidad de datos utilizados y otro indicando el valor de exactitud obtenido.
+
+```{r}
+random_fit_predict <- function(){
+  datos_muestrales <- random_sampling_fun
+  n_muestral <- nrow(datos_muestrales)
+  #Aca va el modelo de regresion logistica
+  #modelo <- 
+  
+  #Aca va la funcion de calculo de exactitud
+  #exactitud <- 
+  resultado <- c('N' = n_muestral, 'Exactitud' = exactitud)
+  return(resultado)
+}
+```
+
+Una vez definidas ambas funciones las integramos en un loop que corra 1000 veces para obtener 1000 pares de combinaciones de tamaño muestral y exactitud.
+
+```{r}
+multiple_log <- replicate(1000, random_fit_predict)
+```
 
 
 
