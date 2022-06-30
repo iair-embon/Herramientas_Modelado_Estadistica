@@ -5,7 +5,6 @@ date: '2022-06-18'
 output: html_document
 ---
 
-
 # 1 
 
 ```{r}
@@ -62,13 +61,16 @@ hist(entrenamiento$age)
 
 # hay una edad que tiene 353 años, y uno de 99. quizas es mejor sacar esos dos
 entrenamiento <- entrenamiento %>% filter(age < 99)
+testeo <- testeo %>% filter(age < 99)
 
 # exploro Q28
 hist(entrenamiento$Q28)
 table(entrenamiento$Q28)
 
 # es raro porque hay 24 casos con respuesta 0,
-entrenamiento <- entrenamiento %>% filter(Q28 != 0) #Filtramos los datos con valor de respuesta 0
+entrenamiento <- entrenamiento %>% filter(Q28 != 0) 
+testeo <- testeo %>% filter(Q28 != 0)
+#Filtramos los datos con valor de respuesta 0
 
 # exploro Q28 en funcion de la edad.
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
@@ -96,7 +98,6 @@ predicciones_q9 <- predict(modelo_q9, df_25, type = "p")
 #Resultado del ejercicio, sumo la probabilidad para todas las opciones menores o iguales a 4
 sum(predicciones_q9[0:5])
 ```
-
 
 # 7
 
@@ -129,7 +130,6 @@ Primero armo y ajusto el modelo lineal
 modelo_lineal_q28 <- lm(Q28 ~ age, data = entrenamiento)
 summary(modelo_lineal_q28)
 ```
-
 
 En segundo lugar, genero una funcion que tome las predicciones del modelo y las acote a los valores ordinales que puede tomar la variable de respuesta.
 
@@ -199,8 +199,8 @@ index_min <- which.min(funcion_de_perdida)
 link_functions[index_min]
 
 ```
-# 11
 
+# 11
 
 Exploro algunas variables que nos parecen interesantes como posibles predictores de titulo universitario
 
@@ -292,7 +292,6 @@ mean(predicted.classes == testeo$education_universitaria)
 
 ```
 
-
 # 12
 
 En primer lugar generamos varias muestras aleatorias de nuestro dataframe, con distinto n pero sin repeticion. Para eso armamos una distribucion uniforme entre los dos rangos de valores que consideramos apropiados. Vamos a usar 1000 muestras a partir de un rango de entre 50 y 5000 datos. 
@@ -328,10 +327,3 @@ Una vez definidas ambas funciones las integramos en un loop que corra 1000 veces
 ```{r}
 multiple_log <- replicate(1000, random_fit_predict)
 ```
-
-
-
-
-
-
-
