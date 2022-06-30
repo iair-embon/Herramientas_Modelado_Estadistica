@@ -254,23 +254,9 @@ testeo$education_universitaria<- ifelse(testeo$education == 1 | testeo$education
 ```
 
 
-Corro el modelo
+Corro el modelo y calculo el error segun la exactitud
 
 ```{r}
-mod_log <- glm(education_universitaria ~ gender +
-           Q11 +
-           Q30 +
-           Q32,
-           family=binomial(link="logit"), 
-           data = entrenamiento)
-
-summary(mod_log)
-```
-
-Calculo el error segun la exactitud
-
-```{r}
-# voy a probar correr un modelo mas simple
 mod_log <- glm(education_universitaria ~ 
                   gender +
                   Q11 +
@@ -289,7 +275,6 @@ predicted.classes <- ifelse(predicciones_mod_log > 0.5, 1, 0)
 
 # veo exactitud
 mean(predicted.classes == testeo$education_universitaria)
-
 ```
 
 # 12
