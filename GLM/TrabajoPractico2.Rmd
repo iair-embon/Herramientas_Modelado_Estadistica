@@ -39,14 +39,17 @@ testeo <- data %>%
 # 3
 
 >El problema teorico de usar una regresion lineal es que la veriable de respuestas Y no es escalar, es decir, las distancias entre cada unidad no son equivaletes y la respuesta Y no es continua. 
-Segun Agresti (2015), el modelo de regresion lineal podria utilizarse para ver que variables afectan Y pero presentaria algunas limitaciones. En primer lugar si la respuesta es verbal en lugar de numerica asignar valores numericos a categorias como 'Totalmente en desacuerdo' o 'Totalmente de acuerdo' es muy arbitrario porque se podria decir que uno de los extremos representa el 1 y el otro el 5 o uno de los extremos representa el 1 y el otro el 10 o el 7 o cualquier otro numero. En segundo lugar si asumimos que las respuestas ordinales responden a una variable continua latente, distintos valores de la variable latente puede corresponderse con un mismo valor de la variable latente siendo que cualquier valor dentro del rando de dos umbrales va a corresponderse con el mismo valor ordinal aunque tengan distinto valor de la variable latente. En tercer lugar el modelo lineal comun no otorga probabilidades estimadas a cada categoria ordinal por lo que no seria claro como ordinalizar una prediccion numerica continua. Por ultimo la variabilidad de los datos no es constante para la variable de respuesta, una variable ordinal tiene poca variabilidad cuando dados los valores de la covariada la variable de respuesta se ubica en los extremos de la escala ordinal lo cual esta relacionado con el hecho de que los umbrales para los extremos no estan acotados en la distribucion de la variable latente. 
-
+Segun Agresti (2015), el modelo de regresion lineal podria utilizarse para ver que variables afectan Y pero presentaria algunas limitaciones. 
+En primer lugar, si la respuesta es verbal en lugar de numerica, asignar valores numericos a categorias como 'Totalmente en desacuerdo' o 'Totalmente de acuerdo' seria muy arbitrario porque se podria decir que uno de los extremos representa el 1 y el otro el 5, o uno de los extremos representa el 1 y el otro el 10, o el 7 o cualquier otro numero. 
+En segundo lugar, si asumimos que las respuestas ordinales responden a una variable continua latente, distintos valores de la variable latente podrian corresponderse con un mismo valor de la variable de respuesta ordinal. Esto se debe a que cualquier valor dentro del rango de dos umbrales va a corresponderse con el mismo valor ordinal aunque tengan distinto valor de la variable latente.
+En tercer lugar el modelo lineal comun no otorga probabilidades estimadas a cada categoria ordinal, por lo que no seria claro como ordinalizar una prediccion numerica continua. 
+Por ultimo, la variabilidad de los datos no es constante para la variable de respuesta. Es decir, la variabilidad de los valores latentes en un determinado rango ordinal es mayor a la que se obtiene en la variable de respuesta ordinal. Esto esta relacionado con el hecho de que los umbrales para los extremos no estan acotados en la distribucion de la variable latente.
 
 >El porblema teorico al momento de usar una regresion multinomial para estos datos seria que no aprovecharia la caracteristica ordinal de la variable de respuesta. Un modelo ordinal tiene una ordenada dada por la categoria ordinal pero los coeficientes son los mismos independientemente de la categoria ya que se asume que el efecto de las covariadas es el mismo para cada probabilidad acumulada. De esta manera un modelo ordinal utilizaria muchos menos parametros, ya que los coeficientes no dependen de cada categoria como sucede en el modelo multinomial porque no se puede utilizar una estructura de probabilidad acumulada como la que se trabaja en un modelo ordinal. 
 
 # 4
 
->Este modelo supone que las respuestas Y corresponden a una variable del tipo ordinal con J categorias. A diferencia del modelo multinomial clasico donde se quiere calcular, en ultima instancia, la probabilidad de pertenecer a cada categoria. En este caso aprovechamos la estructura ordinal asumiendo que existe una variable latente que desconocemos a partir de la cual con determinados umbrales numericos se construyeron las respuestas ordinales observadas. La probabilidad de que la respuesta y sea igual a la categoria ordinal j puede pensarse como una probabilidad acumulada. Lo que se intenta modelar entonces es la probabilidad acumulada de que la respuesta sea menor o igual a j dado determinado efecto de las covariadas y determinados puntos de corte, ambos parametros a estimar. Se puede repensar entonces la probabilidad de que la respuesta sea menor o igual a la categoria j como la probabilidad de que el valor de la variable latente sea menor o igual al punto de corte de la categoria j es decir la funcion de probabilidad acumulada. Si la funcion de probabilidad acumulada asumimos que es la logistica standard entonces la funcion de link (que es la inversa de probabilidad acumulada) es el logit y si asumimos que es la acumulada de la normal entonces utilizamos como link la funcion probit. En este modelo, la intercept es diferente para cada J, mientras que el slope es el mismo.
+>Este modelo supone que las respuestas Y corresponden a una variable del tipo ordinal con J categorias. A diferencia del modelo multinomial clasico donde se quiere calcular, en ultima instancia, la probabilidad de pertenecer a cada categoria. En este caso aprovechamos la estructura ordinal asumiendo que existe una variable latente que desconocemos a partir de la cual con determinados umbrales numericos se construyeron las respuestas ordinales observadas. La probabilidad de que la respuesta y sea igual a la categoria ordinal j puede pensarse como una probabilidad acumulada. Lo que se intenta modelar entonces es la probabilidad acumulada de que la respuesta sea menor o igual a j, dado determinado efecto de las covariadas y determinados puntos de corte, ambos parametros a estimar. Se puede repensar entonces la probabilidad de que la respuesta sea menor o igual a la categoria j como la probabilidad de que el valor de la variable latente sea menor o igual al punto de corte de la categoria j es decir la funcion de probabilidad acumulada. Si asuminos que la funcion de probabilidad acumulada es la logistica standard, entonces la funcion de link (que es la inversa de probabilidad acumulada) es el logit. Por otro lado, si asumimos que es la acumulada de la normal, entonces utilizamos como link la funcion probit. En este modelo, la intercept es diferente para cada J, mientras que el slope es el mismo.
 
 # 5
 
@@ -63,9 +66,9 @@ entrenamiento <- entrenamiento %>% filter(age < 99)
 # exploro Q28
 hist(entrenamiento$Q28)
 table(entrenamiento$Q28)
+
 # es raro porque hay 24 casos con respuesta 0,
 entrenamiento <- entrenamiento %>% filter(Q28 != 0) #Filtramos los datos con valor de respuesta 0
-
 
 # exploro Q28 en funcion de la edad.
 plot(entrenamiento$age, entrenamiento$Q28, xlim = c(10,100))
@@ -87,7 +90,7 @@ summary(modelo_q9)
 
 #armo el dataframe de input
 df_25 <- data.frame(age = c(25))
-# hago las predicciones con el modelo de testeo
+# hago una prediccion con el modelo
 predicciones_q9 <- predict(modelo_q9, df_25, type = "p")
 
 #Resultado del ejercicio, sumo la probabilidad para todas las opciones menores o iguales a 4
@@ -110,7 +113,10 @@ funcion_perdida <- function(predicciones, variable_respuesta){
 Evaluamos la funcion con los dos modelos creados hasta ahora.
 
 ```{r}
-funcion_perdida(predicciones_q28, testeo$Q28)
+# Primero hago las predicciones ##### CORREGIR, O RESOLVER
+predicciones_q9 <- predict(modelo_q9, df_25, type = "p")
+
+funcion_perdida(as.numeric(predicciones_q28), testeo$Q28)
 funcion_perdida(predicciones_q9, testeo$Q9)
 ```
 
@@ -125,7 +131,7 @@ summary(modelo_lineal_q28)
 ```
 
 
-En segundo lugar genero una funcion que tome las predicciones del modelo y las acote a los valores ordinales que puede tomar la variable de respuesta.
+En segundo lugar, genero una funcion que tome las predicciones del modelo y las acote a los valores ordinales que puede tomar la variable de respuesta.
 
 ```{r}
 pred_linear_fun <- function(predicciones){
@@ -150,12 +156,12 @@ predicciones_linear_q28 <- pred_linear_fun(predict(modelo_lineal_q28, testeo))
 
 ```{r}
 # veo los resultados de las funciones de perdidas anterior
-perdida_lineal_q28 <- funcion_de_perdida(
+perdida_lineal_q28 <- funcion_perdida(
   predicciones_linear_q28,
   testeo$Q28
 )
-perdida_ordinal_q28 <- funcion_de_perdida(
-  predicciones_q28,
+perdida_ordinal_q28 <- funcion_perdida(
+  as.numeric(predicciones_q28),
   testeo$Q28
 )
 
@@ -165,44 +171,125 @@ c(
 )
 ```
 
-
 Parece ser que el modelo lineal presenta una menor funcion de perdida que el modelo de regresion ordinal.
 
-# 10
-
-
-
+# 10 #### lo rompi, CORREGIR
 
 El modelo de regresion ordinal puede utilizar diferentes funciones de link por lo que vamos implementar una funcion que pruebe todas las posbiles funciones de link para cada combinacion de covariadas. 
 
 ```{r}
-comparacion_metodos <- function(formula){
-  # corro varios modelos cada uno con su link function
-  link_functions <- c("logistic", "probit", "loglog", "cauchit")
+library(purrr)
+# corro varios modelos cada uno con su link function
+link_functions <- c("logistic", "probit", "loglog", "cauchit")
+
+varios_modelos <- link_functions %>%
+  map(~ polr(formula, data = entrenamiento, method = .x)) %>%
+  map(~ funcion_de_perdida(predict(.x, testeo), testeo$Q28))
+
+# realizo predicciones en el df de testeo y uso la funcion de perdida del ejercicio 7
+funcion_de_perdida <- rep(NaN, length(varios_modelos))
   
+for (i in 1:length(varios_modelos)){
+  predicciones <- predict(varios_modelos[[i]], testeo)
+  funcion_de_perdida[i] <- sum(abs(as.numeric(testeo$Q28) - as.numeric(predicciones)))/nrow(testeo)}
   
-  varios_modelos <- link_functions %>%
-    map(
-    ~ polr(formula, data = entrenamiento, method = .x)
-  ) %>%
-    map(
-      ~ funcion_de_perdida(predict(.x, testeo), testeo$Q28)
-    )
-    
+index_min <- which.min(funcion_de_perdida)
   
-  # realizo predicciones en el df de testeo y uso la funcion de perdida del ejercicio 7
-  funcion_de_perdida <- rep(NaN, length(varios_modelos))qa
-  
-  for (i in 1:length(varios_modelos)) {
-    predicciones <- predict(varios_modelos[[i]], testeo)
-    funcion_de_perdida[i] <- sum(abs(as.numeric(testeo$Q28) - as.numeric(predicciones)))/nrow(testeo)
-  }
-  
-  index_min <- which.min(funcion_de_perdida)
-  
-  # la link function que tiene menor error segun la funcion de perdida implementada es:
-  link_functions[index_min]
-}
+# la link function que tiene menor error segun la funcion de perdida implementada es:
+link_functions[index_min]
+
+```
+# 11
+
+
+Exploro algunas variables que nos parecen interesantes como posibles predictores de titulo universitario
+
+```{r}
+# genero
+table(data$gender)
+# es raro que aparezca el 0, ya que no esta en el codebook.txt,
+# lo voy a sacar
+entrenamiento <- entrenamiento %>% filter(gender != 0)
+testeo <- testeo %>% filter(gender != 0)
+
+# Q11	I did not work very hard in school.
+hist(data$Q11)
+table(data$Q11)
+# saco a los datos con respuesta 0
+entrenamiento <- entrenamiento %>% filter(Q11 != 0)
+testeo <- testeo %>% filter(Q11 != 0)
+
+# Q30	I think horoscopes are fun.
+hist(data$Q30)
+table(data$Q30)
+# saco a los datos con respuesta 0
+entrenamiento <- entrenamiento %>% filter(Q30 != 0)
+testeo <- testeo %>% filter(Q30 != 0)
+
+# Q32	I have thought about becoming a vegetarian.
+hist(data$Q32)
+table(data$Q32)
+# saco a los datos con respuesta 0
+entrenamiento <- entrenamiento %>% filter(Q32 != 0)
+testeo <- testeo %>% filter(Q32 != 0)
+
+```
+
+Preparo el df para correr el modelo. 
+En la pregunta "How much education have you completed?":
+No tiene titulo universitario = 1=Less than high school, 2=High school
+Tiene titulo universitario = 3=University degree, 4=Graduate degree
+
+```{r}
+# exploro la variable de educacion
+hist(data$education)
+table(data$education)
+# saco a los datos con respuesta 0
+entrenamiento <- entrenamiento %>% filter(education != 0)
+testeo <- testeo %>% filter(education != 0)
+
+entrenamiento$education_universitaria<- ifelse(entrenamiento$education == 1 | entrenamiento$education == 2, 0, 1)
+
+testeo$education_universitaria<- ifelse(testeo$education == 1 | testeo$education == 2, 0, 1)
+```
+
+
+Corro el modelo
+
+```{r}
+mod_log <- glm(education_universitaria ~ gender +
+           Q11 +
+           Q30 +
+           Q32,
+           family=binomial(link="logit"), 
+           data = entrenamiento)
+
+summary(mod_log)
+```
+
+Calculo el error segun la exactitud
+
+```{r}
+# voy a probar correr un modelo mas simple
+mod_log <- glm(education_universitaria ~ 
+                  gender +
+                  Q11 +
+                  Q30+
+                  Q32+
+                  age,
+           family=binomial(link="logit"), 
+           data = entrenamiento)
+
+summary(mod_log)
+
+predicciones_mod_log <- predict(mod_log, testeo, type="response")
+hist(predicciones_mod_log2)
+
+predicted.classes <- ifelse(predicciones_mod_log > 0.5, 1, 0)
+
+# veo exactitud
+mean(predicted.classes == testeo$education_universitaria)
+
 ```
 
 
