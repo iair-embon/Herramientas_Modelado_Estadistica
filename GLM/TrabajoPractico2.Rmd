@@ -105,6 +105,8 @@ Defino la funcion de perdida
 
 ```{r}
 funcion_perdida <- function(predicciones, variable_respuesta){
+  #predicciones espera un vector con los valores de y sombrero
+  #variable respuesta espera un vector con los verdaderos valores de y
   diferencia_absoluta <- abs(predicciones - variable_respuesta)
   perdida <- sum(diferencia_absoluta)/length(variable_respuesta)
   return(perdida)
@@ -312,3 +314,6 @@ Una vez definidas ambas funciones las integramos en un loop que corra 1000 veces
 ```{r}
 multiple_log <- replicate(1000, random_fit_predict)
 ```
+
+
+
