@@ -116,11 +116,12 @@ funcion_perdida <- function(predicciones, variable_respuesta){
 Evaluamos la funcion con los dos modelos creados hasta ahora.
 
 ```{r}
-# Primero hago las predicciones ##### CORREGIR, O RESOLVER
-predicciones_q9 <- predict(modelo_q9, df_25, type = "p")
+# Primero hago las predicciones
+predicciones_q9 <- predict(modelo_q9, testeo)
 
+#Aplico la funcion de perdida
 funcion_perdida(as.numeric(predicciones_q28), testeo$Q28)
-funcion_perdida(predicciones_q9, testeo$Q9)
+funcion_perdida(as.numeric(predicciones_q9), testeo$Q9)
 ```
 
 # 8
@@ -181,25 +182,40 @@ El modelo de regresion ordinal puede utilizar diferentes funciones de link por l
 
 ```{r}
 library(purrr)
-# corro varios modelos cada uno con su link function
+
+varios_ordinales_fun <- function(formula){
+  # corro varios modelos cada uno con su link function
 link_functions <- c("logistic", "probit", "loglog", "cauchit")
 
 varios_modelos <- link_functions %>%
-  map(~ polr(formula, data = entrenamiento, method = .x)) %>%
-  map(~ funcion_de_perdida(predict(.x, testeo), testeo$Q28))
+  map(~ polr(as.formula(formula), data = entrenamiento, method = .x)) %>%
+  map(~ funcion_perdida(
+    as.numeric(predict(.x, testeo)), 
+    testeo$Q28)
+    )
+  return(unlist(varios_modelos))
+}
 
-# realizo predicciones en el df de testeo y uso la funcion de perdida del ejercicio 7
-funcion_de_perdida <- rep(NaN, length(varios_modelos))
-  
-for (i in 1:length(varios_modelos)){
-  predicciones <- predict(varios_modelos[[i]], testeo)
-  funcion_de_perdida[i] <- sum(abs(as.numeric(testeo$Q28) - as.numeric(predicciones)))/nrow(testeo)}
-  
-index_min <- which.min(funcion_de_perdida)
-  
-# la link function que tiene menor error segun la funcion de perdida implementada es:
-link_functions[index_min]
+modelo_edad <- varios_ordinales_fun('as.factor(Q28) ~ age')
 
+modelo_edad_y_religion <- varios_ordinales_fun('as.factor(Q28) ~ age + religion')
+
+modelo_edad_religion_y_q10 <- varios_ordinales_fun('as.factor(Q28) ~ age + religion + Q10')
+
+modelo_religion_edad_q10_interaccion <- varios_ordinales_fun('as.factor(Q28) ~ age + religion + age:religion + Q10')
+
+anova(
+  polr(as.factor(Q28) ~ 1, data = entrenamiento), 
+  polr(as.factor(Q28) ~ age, data = entrenamiento), 
+  polr(as.factor(Q28) ~ age + religion, data = entrenamiento),
+  polr(as.factor(Q28) ~ age + religion + Q10, data = entrenamiento),
+  polr(as.factor(Q28) ~ age + religion + age:religion + Q10, data = entrenamiento)
+)
+
+data.frame(
+ perdida = c(modelo_edad, modelo_edad_y_religion, modelo_edad_religion_y_q10, modelo_religion_edad_q10_interaccion),
+ modelo = rep(c('edad','edad y religion', 'edad, religion y q10', 'religion, edad, q10 e interaccion'), each = 4)
+) %>% group_by(modelo) %>% summarize(min(perdida))
 ```
 
 # 11
@@ -287,8 +303,8 @@ Armamos para esto una funcion la cual, en cada iteracion saca una muestra de la 
 
 ```{r}
 random_sampling_fun <- function(){
-  random_n <- runif(50,5000)
-  datos_sampleados <- entrenamiento %>% dplyr::slice_sample(random_n)
+  random_n <- runif(1,50,5000)
+  datos_sampleados <- entrenamiento %>% dplyr::slice_sample(. ,n = random_n)
   return(datos_sampleados)
 }
 ```
@@ -297,14 +313,23 @@ Generamos otra funcion que va a utilizar los datos creados por la funcion `rando
 
 ```{r}
 random_fit_predict <- function(){
-  datos_muestrales <- random_sampling_fun
+  datos_muestrales <- random_sampling_fun()
   n_muestral <- nrow(datos_muestrales)
   #Aca va el modelo de regresion logistica
-  #modelo <- 
+  modelo <- glm(education_universitaria ~ 
+                  gender +
+                  Q11 +
+                  Q30+
+                  Q32+
+                  age,
+           family=binomial(link="logit"), 
+           data = datos_muestrales)
   
   #Aca va la funcion de calculo de exactitud
-  #exactitud <- 
-  resultado <- c('N' = n_muestral, 'Exactitud' = exactitud)
+  exactitud <- mean(
+    ifelse(predict(modelo, testeo, type="response") > 0.5, 1, 0) == testeo$education_universitaria
+    )
+  resultado <- c(n_muestral, exactitud)
   return(resultado)
 }
 ```
@@ -312,8 +337,36 @@ random_fit_predict <- function(){
 Una vez definidas ambas funciones las integramos en un loop que corra 1000 veces para obtener 1000 pares de combinaciones de tamaño muestral y exactitud.
 
 ```{r}
-multiple_log <- replicate(1000, random_fit_predict)
+multiple_log <- replicate(1000, random_fit_predict())
 ```
+
+
+```{r}
+multiple_log_df <- as.data.frame(
+  t(multiple_log)
+)
+colnames(multiple_log_df) <- c('N', 'Exactitud')
+```
+
+
+```{r}
+ggplot(data = multiple_log_df, aes(x = N, y = Exactitud)) +
+  geom_point() + geom_line() + geom_smooth(span = 0.2, method = 'loess')
+```
+
+```{r}
+library(betareg)
+betareg::betareg(Exactitud ~ N, data = multiple_log_df)
+```
+
+
+
+
+
+
+
+
+
 
 
 
