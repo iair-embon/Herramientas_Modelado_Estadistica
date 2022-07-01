@@ -362,8 +362,8 @@ Graficamos el resultado de la exactitud en funcion del N y le aplicamos un ajust
 ggplot(data = multiple_log_df, aes(x = N, y = Exactitud)) +
   geom_point() + geom_line() + geom_smooth(span = 0.2, method = 'loess')
 ```
-Pareceria que la exactitud sube con el N unicamente para valores pequeños, menores a 200 aproximadamente pero despues converge hacia un determinado valor perdiendo variabilidad con valores de tamaño de muestra mas grandes. 
 
+Pareceria que la exactitud sube con el N unicamente para valores pequeños, menores a 200 aproximadamente, pero despues converge hacia un determinado valor perdiendo variabilidad con valores de tamaño de muestra mas grandes. 
 
 ```{r}
 library(betareg)
@@ -379,7 +379,7 @@ Podriamos probar ahora con usar una grilla de valores de tamaño de muestra que 
 grilla_n <- seq(50,5000, length.out = 1000)
 ```
 
-El problema es que la funcion `random_sampling_fun` tiene ya establecido usar `runif` por lo que habria que modificarla para poder usar la funcion `random_fit_predict` con la grilla. Vamos a modificarla de manera que tome como argumento una funcion o valor numerico que defina el tamaño muetral. Tambien modificamos la funcion `random_fit_predict` para que pueda tomar el argumento que se le va a suministrar a `random_sampling_fun`.
+El problema es que la funcion `random_sampling_fun` tiene ya establecido usar `runif` por lo que habria que modificarla para poder usar la funcion `random_fit_predict` con la grilla. Vamos a modificarla de manera que tome como argumento una funcion o valor numerico que defina el tamaño muestral. Tambien modificamos la funcion `random_fit_predict` para que pueda tomar el argumento que se le va a suministrar a `random_sampling_fun`.
 
 ```{r}
 random_sampling_fun <- function(random_fun){
