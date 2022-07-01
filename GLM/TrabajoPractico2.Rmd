@@ -19,10 +19,6 @@ data <- read.csv(root$find_file("GLM/encuesta.csv"))
 # divido en entrenamiento y testeo 
 library(dplyr)
 
-
-#Correr esta linea por si se quieren retirar todos los valores que tienen 0 para las columnas que corresponden a una pregunta
-# data <- data %>% filter(if_any(starts_with('Q'), ~ . > 0)) 
-
 entrenamiento <- data %>%
   slice_sample(prop = 0.8)
 
@@ -176,9 +172,9 @@ c(
 
 Parece ser que el modelo lineal presenta una menor funcion de perdida que el modelo de regresion ordinal.
 
-# 10 #### lo rompi, CORREGIR
+# 10    
 
-El modelo de regresion ordinal puede utilizar diferentes funciones de link por lo que vamos implementar una funcion que pruebe todas las posbiles funciones de link para cada combinacion de covariadas. 
+El modelo de regresion ordinal puede utilizar diferentes funciones de link por lo que vamos implementar una funcion que pruebe todas las posbiles funciones de link para modelo. 
 
 ```{r}
 library(purrr)
@@ -196,14 +192,22 @@ varios_modelos <- link_functions %>%
   return(unlist(varios_modelos))
 }
 
+## Agregamos al modelo predictores que nos parecen que tienen sentido
+
+# es posible que la edad pueda predecir si llevan una manta en la casa
 modelo_edad <- varios_ordinales_fun('as.factor(Q28) ~ age')
 
+# algunas religiones podrian utilizar mantas como parte de su vestimenta
 modelo_edad_y_religion <- varios_ordinales_fun('as.factor(Q28) ~ age + religion')
 
+# es posible que las personas que puntuan alto en "soy el mas feliz cuando estoy en la cama" tenga una relacion con la pregunta Q28
 modelo_edad_religion_y_q10 <- varios_ordinales_fun('as.factor(Q28) ~ age + religion + Q10')
 
+# Puede ser que edad y religion presenten una interaccion al predecir Q28. 
+# Por ejemplo, quizas en algunas religiones personas mas grandes puntuen alto en Q28, no asi las personas mas jovenes.
 modelo_religion_edad_q10_interaccion <- varios_ordinales_fun('as.factor(Q28) ~ age + religion + age:religion + Q10')
 
+# evaluamos con un ANOVA si se justifica agregar un predictor al modelo
 anova(
   polr(as.factor(Q28) ~ 1, data = entrenamiento), 
   polr(as.factor(Q28) ~ age, data = entrenamiento), 
@@ -212,6 +216,7 @@ anova(
   polr(as.factor(Q28) ~ age + religion + age:religion + Q10, data = entrenamiento)
 )
 
+# evaluamos la funcion de perdida y mostramos los resultados
 data.frame(
  perdida = c(modelo_edad, modelo_edad_y_religion, modelo_edad_religion_y_q10, modelo_religion_edad_q10_interaccion),
  modelo = rep(c('edad','edad y religion', 'edad, religion y q10', 'religion, edad, q10 e interaccion'), each = 4)
@@ -255,7 +260,9 @@ testeo <- testeo %>% filter(Q32 != 0)
 
 Preparo el df para correr el modelo. 
 En la pregunta "How much education have you completed?":
+
 No tiene titulo universitario = 1=Less than high school, 2=High school
+
 Tiene titulo universitario = 3=University degree, 4=Graduate degree
 
 ```{r}
@@ -266,8 +273,8 @@ table(data$education)
 entrenamiento <- entrenamiento %>% filter(education != 0)
 testeo <- testeo %>% filter(education != 0)
 
+# binarizo la variable de respuesta, siendo 0: no tienen titulo universitario, y 1: tiene titulo universitario
 entrenamiento$education_universitaria<- ifelse(entrenamiento$education == 1 | entrenamiento$education == 2, 0, 1)
-
 testeo$education_universitaria<- ifelse(testeo$education == 1 | testeo$education == 2, 0, 1)
 ```
 
@@ -287,7 +294,7 @@ mod_log <- glm(education_universitaria ~
 summary(mod_log)
 
 predicciones_mod_log <- predict(mod_log, testeo, type="response")
-hist(predicciones_mod_log2)
+hist(predicciones_mod_log)
 
 predicted.classes <- ifelse(predicciones_mod_log > 0.5, 1, 0)
 
