@@ -302,8 +302,8 @@ En primer lugar generamos varias muestras aleatorias de nuestro dataframe, con d
 Armamos para esto una funcion la cual, en cada iteracion saca una muestra de la distribucion uniforme que definimos y seleciona una muestra aleatoria de nuestros datos con ese muestral. 
 
 ```{r}
-random_sampling_fun <- function(){
-  random_n <- runif(1,50,5000)
+random_sampling_fun <- function(random_fun){
+  random_n <- random_fun
   datos_sampleados <- entrenamiento %>% dplyr::slice_sample(. ,n = random_n)
   return(datos_sampleados)
 }
@@ -340,6 +340,7 @@ Una vez definidas ambas funciones las integramos en un loop que corra 1000 veces
 multiple_log <- replicate(1000, random_fit_predict())
 ```
 
+Posteriormente creamos un dataframe de los resultados usando la matriz transpuesta. 
 
 ```{r}
 multiple_log_df <- as.data.frame(
@@ -348,25 +349,140 @@ multiple_log_df <- as.data.frame(
 colnames(multiple_log_df) <- c('N', 'Exactitud')
 ```
 
+Graficamos el resultado de la exactitud en funcion del N y le aplicamos un ajuste local para tratar de ver patrones.  
 
 ```{r}
 ggplot(data = multiple_log_df, aes(x = N, y = Exactitud)) +
   geom_point() + geom_line() + geom_smooth(span = 0.2, method = 'loess')
 ```
+Pareceria que la exactitud sube con el N unicamente para valores pequeños, menores a 200 aproximadamente pero despues converge hacia un determinado valor perdiendo variabilidad con valores de tamaño de muestra mas grandes. 
+
 
 ```{r}
 library(betareg)
-betareg::betareg(Exactitud ~ N, data = multiple_log_df)
+beta_unif <- betareg::betareg(Exactitud ~ N, data = multiple_log_df)
+summary(beta_unif)
+```
+
+La regresion beta nos arroja un coeficiente negativo para la asociacion el N.
+
+Podriamos probar ahora con usar una grilla de valores de tamaño de muestra que se vaya incrementando desde 50 a 5000, con una longitud total de 1000 valores como en el caso anterior.
+
+```{r}
+grilla_n <- seq(50,5000, length.out = 1000)
+```
+
+El problema es que la funcion `random_sampling_fun` tiene ya establecido usar `runif` por lo que habria que modificarla para poder usar la funcion `random_fit_predict` con la grilla. Vamos a modificarla de manera que tome como argumento una funcion o valor numerico que defina el tamaño muetral. Tambien modificamos la funcion `random_fit_predict` para que pueda tomar el argumento que se le va a suministrar a `random_sampling_fun`.
+
+```{r}
+random_sampling_fun <- function(random_fun){
+  random_n <- random_fun
+  datos_sampleados <- entrenamiento %>% dplyr::slice_sample(. ,n = random_n)
+  return(datos_sampleados)
+}
+
+random_fit_predict <- function(random_fun){
+  datos_muestrales <- random_sampling_fun(random_fun)
+  n_muestral <- nrow(datos_muestrales)
+  #Aca va el modelo de regresion logistica
+  modelo <- glm(education_universitaria ~ 
+                  gender +
+                  Q11 +
+                  Q30+
+                  Q32+
+                  age,
+           family=binomial(link="logit"), 
+           data = datos_muestrales)
+  
+  #Aca va la funcion de calculo de exactitud
+  exactitud <- mean(
+    ifelse(predict(modelo, testeo, type="response") > 0.5, 1, 0) == testeo$education_universitaria
+    )
+  resultado <- c(n_muestral, exactitud)
+  return(resultado)
+}
 ```
 
 
+Implementamos ahora la funcion con la grilla
 
+```{r}
+multiple_log_grilla <-  sapply(grilla_n, random_fit_predict)
+```
 
+Igual que hicimos en el caso anterior armamos un dataframe con la matriz transpuesta.
 
+```{r}
+multiple_log_grilla_df <- as.data.frame(t(multiple_log_grilla))
+colnames(multiple_log_grilla_df) <- c('N', 'Exactitud')
+```
 
+Graficamos la exactitud en funcion del N.
 
+```{r}
+ggplot(data = multiple_log_grilla_df, aes(x = N, y = Exactitud)) +
+  geom_point() + geom_line() + geom_smooth(span = 0.2, method = 'loess')
+```
 
+En este caso no pareceria haber una pendiente negativa evidente como en el anterior pero vemos que el tamaño de la muestra no mejora la exactitud salvo con los valores mas bajos. 
+Ajustamos entonces la regresion beta.
 
+```{r}
+beta_grilla <- betareg::betareg(Exactitud ~ N, data = multiple_log_grilla_df)
+summary(beta_grilla)
+```
+El coeficiente igual sigue siendo negativo. 
 
+Podemos repetir el procedimiento de usar una distribucion uniforme sobre el tamaño muestral pero esta vez teniendo una cota superior mucho mas chica. 
 
+```{r}
+multiple_small_n <- replicate(1000, 
+          random_fit_predict(runif(1,30,200))
+          )
+multiple_small_n_df <- as.data.frame(t(multiple_small_n))
+colnames(multiple_small_n_df) <- c('N', 'Exactitud')
+```
 
+Graficamos
+
+```{r}
+ggplot(data = multiple_small_n_df, aes(x = N, y = Exactitud)) +
+  geom_point() + geom_line() + geom_smooth(span = 0.2, method = 'loess')
+```
+
+Aca pareceria haber una relacion positiva entre el tamaño muestral y la exactitud. 
+
+```{r}
+beta_small_n <- betareg(Exactitud ~ N, data = multiple_small_n_df)
+summary(beta_small_n)
+```
+
+Si usamos este modelo para generar predicciones para distintos N podemos compararlo con los resultados anteriores. Armamos un data frame con predicciones de este ultimo modelo beta para un tamaño de muestra que vaya de 500 a 5000.
+
+```{r}
+predicciones_beta_df <- data.frame(
+  Exactitud = predict(beta_small_n, data.frame(N = seq(50,5000, 50))),
+  N = seq(50, 5000, 50)
+)
+```
+
+Graficamos comparando con los anteriores resultados.
+
+```{r}
+rbind(predicciones_beta_df, multiple_log_grilla_df, multiple_log_df) %>% 
+  mutate(
+    data_origin = rep(
+      c('Predicciones', 'Grilla', 'Uniforme'),
+      c(nrow(predicciones_beta_df), nrow(multiple_log_grilla_df), nrow(multiple_log_df))
+    )
+  ) %>%
+  ggplot(aes(x = N, y = Exactitud, color = data_origin)) +
+  geom_point() + geom_line()
+```
+
+El modelo predice bien dentro del rango de datos que usamos para la regresion beta es decir tamaños muestrales hasta 200 pero despues generaliza muy mal a medida que el n aumenta. 
+
+```{r}
+predicciones_beta_df$N[which.min(abs(0.9 - predicciones_beta_df$Exactitud))]
+```
+Podemos comprobar el modelo que armamos para una exactitud de 0.9 pero vemos que esa exactitud luego no se cumple cuando contamos con esa cantidad de datos. 
