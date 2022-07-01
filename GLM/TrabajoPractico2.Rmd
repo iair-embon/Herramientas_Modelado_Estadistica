@@ -309,8 +309,8 @@ En primer lugar generamos varias muestras aleatorias de nuestro dataframe, con d
 Armamos para esto una funcion la cual, en cada iteracion saca una muestra de la distribucion uniforme que definimos y seleciona una muestra aleatoria de nuestros datos con ese muestral. 
 
 ```{r}
-random_sampling_fun <- function(random_fun){
-  random_n <- random_fun
+random_sampling_fun <- function(){
+  random_n <- runif(1,50,5000)
   datos_sampleados <- entrenamiento %>% dplyr::slice_sample(. ,n = random_n)
   return(datos_sampleados)
 }
