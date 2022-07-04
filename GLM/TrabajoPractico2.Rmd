@@ -306,7 +306,7 @@ mean(predicted.classes == testeo$education_universitaria)
 
 En primer lugar generamos varias muestras aleatorias de nuestro dataframe, con distinto n pero sin repeticion. Para eso armamos una distribucion uniforme entre los dos rangos de valores que consideramos apropiados. Vamos a usar 1000 muestras a partir de un rango de entre 50 y 5000 datos. 
 
-Armamos para esto una funcion la cual, en cada iteracion saca una muestra de la distribucion uniforme que definimos y seleciona una muestra aleatoria de nuestros datos con ese muestral. 
+Armamos para esto una funcion la cual, en cada iteracion saca una muestra de la distribucion uniforme que definimos y seleciona una muestra aleatoria de nuestros datos con ese tamaño muestral. 
 
 ```{r}
 random_sampling_fun <- function(){
