@@ -1,0 +1,61 @@
+---
+title: "clase2_mlg"
+author: "Gonzalo Chebi"
+date: "6/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(survival)
+library(survminer)
+library(car)
+library(carData)
+library(tidyverse)
+```
+
+```{r}
+Rossi
+```
+
+```{r}
+m = coxph(Surv(week, arrest) ~ fin + age, data=Rossi %>% select(c(week, arrest, fin, age)))
+m %>% summary()
+```
+```{r}
+new_data = data.frame(age = c(20, 20), fin = c('yes', 'no'))
+fit = survfit(m, newdata = new_data)
+ ggsurvplot(fit, data=new_data, conf.int = TRUE, legend.labs = c('Financial help', 'No financial help'),
+           ggtheme = theme_minimal(), ylim = c(0.3, 1)) 
+ 
+```
+
+```{r}
+m1 = coxph(Surv(week, arrest) ~ fin + age, data=Rossi %>% select(c(week, arrest, fin, age)))
+m2 = coxph(Surv(week, arrest) ~ fin + age + mar, data=Rossi %>% select(c(week, arrest, fin, age, mar)))
+
+anova(m1, m2)
+```
+
+```{r}
+autoplot(survfit(m1))
+```
+
+
+```{r}
+cox.zph(m1)
+```
+
+```{r}
+Rossi
+```
+
+
+```{r}
+coxph(Surv(week, arrest) ~ fin + age + mar + race + wexp + paro + prio + factor(educ), data=Rossi) %>% 
+  summary()
+```
+
+
+
+
