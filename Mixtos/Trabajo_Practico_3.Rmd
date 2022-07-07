@@ -1,0 +1,60 @@
+---
+title: "Trabajo Practico 3"
+author: "Alejandro Ramos Usaj y Iair Embon"
+date: '2022-07-07'
+output: html_document
+---
+Cargo librerias que vamos a utilizar
+```{r}
+library(tidyverse)
+```
+
+Cargo los datos
+```{r}
+root <- rprojroot::is_rstudio_project
+basename(getwd())
+
+titles_train <- read.csv(root$find_file("Mixtos/titles_train.csv"))
+credits_train <- read.csv(root$find_file("Mixtos/credits_train.csv"))
+```
+
+1
+
+Exploro los datos. Sigo la lista de recomendaciones y agregamos otras exploraciones
+```{r}
+str(titles_train)
+str(credits_train)
+
+### a
+
+# creo una funcion que me preprocese el vector con characteres
+prepro_character_vector <- function(vec){
+  # saco corchetes
+  vec_sin_corchetes <- gsub("\\[|\\]", "", vec)
+  # separo por coma
+  vec_csv <- strsplit(vec_sin_corchetes, split = ",")
+  # unlist
+  vec_unlist <- unlist(vec_csv)
+  # saco apostrofes
+  vec_sin_apostrofes <- gsub("'", "", vec_unlist)
+  # saco el espacio inicial de algunos vectores
+  vec_sin_espacio <- gsub(" ", "", vec_sin_apostrofes)
+  # busco los valores unicos
+  vec_final <- unique(vec_sin_espacio)
+  return(vec_final)
+  }
+
+generos <- prepro_character_vector(titles_train$genres)
+
+puntaje_promedio <- rep(NaN, length(generos))
+
+for (i in 1:nrow(titles_train)) {
+  index_genero <- generos %in% prepro_character_vector(titles_train$genres[i])
+  
+}
+
+ggplot(titles_train, aes(x=genres, y=imdb_score, fill=genres)) + 
+  geom_violin()
+
+```
+
