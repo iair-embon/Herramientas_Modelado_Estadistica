@@ -46,13 +46,18 @@ prepro_character_vector <- function(vec){
 
 generos <- prepro_character_vector(titles_train$genres)
 
-puntaje_promedio <- rep(NaN, length(generos))
+puntaje_promedio <- rep(0, length(generos))
 
 for (i in 1:nrow(titles_train)) {
-  index_genero <- generos %in% prepro_character_vector(titles_train$genres[i])
-  
-}
+  is_in_genero <- generos %in% prepro_character_vector(titles_train$genres[i])
+  index_genero <- which(is_in_genero ==T)
+  for (j in 1:length(index_genero)) {
+    puntaje_promedio[index_genero[j]] <- puntaje_promedio[index_genero[j]] + titles_train$imdb_score[i]
+  }
+} # tira un error, hasta i =  a 3 lo probe y funciona bien, en algun momento se rompe
 
+
+# plotear
 ggplot(titles_train, aes(x=genres, y=imdb_score, fill=genres)) + 
   geom_violin()
 
