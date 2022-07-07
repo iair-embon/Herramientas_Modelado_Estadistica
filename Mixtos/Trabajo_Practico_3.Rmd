@@ -63,3 +63,4 @@ ggplot(titles_train, aes(x=genres, y=imdb_score, fill=genres)) +
 
 ```
 
+En el punto 4 fijar un parametro de penalizacion
