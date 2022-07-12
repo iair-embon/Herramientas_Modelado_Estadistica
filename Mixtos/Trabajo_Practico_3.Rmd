@@ -18,6 +18,8 @@ titles_train <- read.csv(root$find_file("Mixtos/titles_train.csv"))
 credits_train <- read.csv(root$find_file("Mixtos/credits_train.csv"))
 ```
 
+# 1
+
 Primero tengo que normalizar la base de datos de entrenamiento que tiene muchos generos metidos en una sola columna. Queremos que cada genero sea una sola columna y que tenga un valor de 1 indicando si esa fila pertenece a ese genero y 0 de otra manera. 
 
 Para esto en primer lugar eliminamos de las filas con el genero de las peliculas a todos los caracteres que no corresponden con letras o comas. De esta manera deberiamos quedarnos con una estructura que sea "genero1,genero2, ...,generoN". De ahora en mas comprobamos el procedimiento extrayendo 10 datos aleatoriamente del dataframe resultante posterior a la manipulacion.
@@ -80,6 +82,69 @@ Por ultimo podria ser interesante tener una columna que cuente cuantos generos t
 
 ```{r}
 titles_train_trans <- titles_train_trans %>% mutate(cant_genres = rowSums(across(comedy:sport)))
+```
+
+Solo falta normalizar la columna correspondiente a los paises encargados de la produccion. Sin embargo hay demasiados paises involucrados, muchos mas que en el caso de los generos lo que nos dejaria con demasiadas columnas con muchos valores en 0. 
+
+```{r}
+titles_train %>% 
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
+  separate_rows(production_countries, sep = ',') %>% 
+  pull(production_countries) %>%
+  unique() %>% length()
+```
+
+Podemos comprobar tambien la frecuencia de cada pais para ver que tan concentrados estan los datos alrededor de determinados paises. 
+
+```{r}
+titles_train %>% 
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
+  separate_rows(production_countries, sep = ',') %>% 
+  filter(production_countries != '') %>%
+  count(production_countries) %>% 
+  ggplot(aes(x = production_countries, y = n)) +
+  geom_col() + theme(axis.text.x = element_blank())
+```
+
+Vemos que hay unos pocos paises que concentrar la mayoria de los datos. Generamos entonces 10 factores y el resto quedan como "otros".
+
+```{r}
+titles_train_trans <- titles_train_trans %>%
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
+  separate_rows(production_countries, sep = ',') %>% 
+  filter(production_countries != '') %>%
+  mutate(production_countries = fct_lump_n(production_countries, 10, other_level = "Otros"))
+```
+
+Podemos comprobar de nuevo como queda la distribucion de factores posterior a esta manipulacion.
+
+```{r}
+titles_train_trans %>% count(production_countries) %>% 
+  ggplot(aes(x = production_countries, y = n)) +
+  geom_col()
+```
+El factor 'Otros' recopila bastantes valores. Puede que mas adelante sea mas conveniente crear una sola columna que sea "US" u "Otros" para condensar mejor la distribucion pero ahora procedemos de esta manera. 
+
+Ahora si podemos replicar el abordaje que seguimos con el genero y convertir cada factor en una columna separada. Lo unico que hay que hacer es eliminar los duplicados porque hay peliculas que titulos repetidos dado que tenian distintos paises asignados pero estos distintos paises se convirtieron en la misma categoria dejando a las filas como repetidas. 
+
+```{r}
+titles_train_trans <- titles_train_trans %>% mutate(dummy = 1) %>% 
+  distinct() %>%
+  pivot_wider(names_from = production_countries, values_from = dummy) %>% 
+  mutate(
+    across(any_of(levels(titles_train_trans$production_countries)), ~ replace_na(.x, 0))
+    )
+```
+
+
+## a)
+
+```{r}
+titles_train_trans %>%
+  
+  ggplot(
+    aes(x = )
+  )
 ```
 
 
