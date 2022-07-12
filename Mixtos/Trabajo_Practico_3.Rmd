@@ -18,7 +18,67 @@ titles_train <- read.csv(root$find_file("Mixtos/titles_train.csv"))
 credits_train <- read.csv(root$find_file("Mixtos/credits_train.csv"))
 ```
 
-1
+Primero tengo que normalizar la base de datos de entrenamiento que tiene muchos generos metidos en una sola columna. Queremos que cada genero sea una sola columna y que tenga un valor de 1 indicando si esa fila pertenece a ese genero y 0 de otra manera. 
+
+Para esto en primer lugar eliminamos de las filas con el genero de las peliculas a todos los caracteres que no corresponden con letras o comas. De esta manera deberiamos quedarnos con una estructura que sea "genero1,genero2, ...,generoN". De ahora en mas comprobamos el procedimiento extrayendo 10 datos aleatoriamente del dataframe resultante posterior a la manipulacion.
+
+```{r}
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>%
+  slice_sample(n = 10) %>%
+  pull(genres)
+```
+
+A continuacion usamos la funcion de `separate_rows` para separar los generos por coma de manera que cada uno sea una fila nueva. 
+
+
+```{r}
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% 
+  slice_sample(n = 10) %>%
+  select(title, genres)
+```
+
+Proximamente generamos una columna dummy nueva con todos valores de 1 para usar como valores cuando pasemos el dataframe a formato wide. Asimismo filtramos aquellas filas que quedaron sin ningun genero (sin caracteres) como consecuencia de la funcion `separate_rows`.
+
+```{r}
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% 
+  mutate(dummy = 1) %>% filter(genres != '') %>% 
+  slice_sample(n = 10) %>%
+  select(title, genres, dummy)
+  pivot_wider(names_from = genres, values_from = dummy) %>% 
+  mutate(across(comedy:sport, ~ replace_na(.x, 0)))
+```
+
+Por ultimo vamos a usar la funcion `pivor_wider` para convertir el dataframe de formato long como esta ahora (con filas repetidas para distintos titulos) a formato wide donde cada genero corresponda a una columna con valores dados por la columna dummy. 
+
+```{r}
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% 
+  mutate(dummy = 1) %>% filter(genres != '') %>% 
+  pivot_wider(names_from = genres, values_from = dummy) %>% 
+  slice_sample(n = 10) %>%
+  select(title, comedy:sport)
+```
+
+Finalmente reemplazamos aquellos valores que quedaron como `NA` con un 0 indicando que ese genero no pertenece a ese titulo y escribimos todo el procedimiento anterior en un solo bloque. 
+
+```{r}
+titles_train_trans <- titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% 
+  mutate(dummy = 1) %>% filter(genres != '') %>% 
+  pivot_wider(names_from = genres, values_from = dummy) %>% 
+  mutate(across(comedy:sport, ~ replace_na(.x, 0))) 
+```
+
+
+
+
 
 Exploro los datos. Sigo la lista de recomendaciones y agregamos otras exploraciones
 ```{r}
