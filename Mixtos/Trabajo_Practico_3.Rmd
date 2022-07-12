@@ -76,6 +76,11 @@ titles_train_trans <- titles_train %>%
   mutate(across(comedy:sport, ~ replace_na(.x, 0))) 
 ```
 
+Por ultimo podria ser interesante tener una columna que cuente cuantos generos tiene un determinado titulo y para esto vamos a agregar una columna nueva sumando los 1 para todas las columnas correspondientes a los distintos generos. 
+
+```{r}
+titles_train_trans <- titles_train_trans %>% mutate(cant_genres = rowSums(across(comedy:sport)))
+```
 
 
 
