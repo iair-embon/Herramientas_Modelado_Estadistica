@@ -186,7 +186,21 @@ titulos_creditos_combinados %>%
 
 ```
 
+## d)
 
+Se tomara la columna imdb_votes como una medida de popularidad, suponiendo que la cantidad de votos estaria asociado con la cantidad de personas que ven un film determinado.
+Pareceria ser que la cantidad de votos y el puntaje esta asociado de manera postiva.
+```{r}
+titles_train %>%
+  ggplot(aes(imdb_votes, imdb_score)) +
+    geom_point()
+
+# ahora me fijo en los que tienen menos de 250000 votos
+titles_train %>%
+  ggplot(aes(imdb_votes, imdb_score)) +
+    geom_point() +
+    xlim(0,250000)
+```
 
 -----
 
