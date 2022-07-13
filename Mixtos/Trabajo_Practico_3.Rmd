@@ -119,14 +119,15 @@ El factor 'Otros' recopila bastantes valores. Puede que mas adelante sea mas con
 
 Ahora si podemos replicar el abordaje que seguimos con el genero y convertir cada factor en una columna separada. Lo unico que hay que hacer es eliminar los duplicados porque hay peliculas que titulos repetidos dado que tenian distintos paises asignados pero estos distintos paises se convirtieron en la misma categoria dejando a las filas como repetidas. 
 ```{r}
-titles_train_countries_wide <- titles_train_trans %>% mutate(dummy = 1) %>% 
+titles_train_countries_wide <- titles_train_trans %>% 
+  mutate(dummy = 1) %>% 
+  na_if("") %>%
   distinct() %>%
   pivot_wider(names_from = production_countries, values_from = dummy) %>% 
   mutate(
     across(any_of(levels(titles_train_trans$production_countries)), ~ replace_na(.x, 0))
     )
 ```
-
 
 ## a)
 ```{r}
@@ -139,9 +140,6 @@ titles_train %>%
     geom_boxplot()+
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 ```
-
-
-
 
 Exploro los datos. Sigo la lista de recomendaciones y agregamos otras exploraciones
 ```{r}
