@@ -140,48 +140,54 @@ titles_train %>%
     geom_boxplot()+
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 ```
+## b)
 
-Exploro los datos. Sigo la lista de recomendaciones y agregamos otras exploraciones
+Exploramos el puntaje a lo largo de los años
 ```{r}
-str(titles_train)
-str(credits_train)
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% filter(genres != '', !is.na(imdb_score)) %>%
+  ggplot(aes(x= release_year, y=imdb_score)) +
+    geom_line() +
+    geom_point()
+   
+```
 
-### a
+Ahora lo hacemos en base al genero
+```{r}
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% filter(genres != '', !is.na(imdb_score)) %>%
+  ggplot(aes(x=release_year, y=imdb_score, color = genres)) +
+    geom_line() +
+    facet_wrap("genres") +
+   theme(axis.text.x = element_text(angle = 45, hjust=1))
+   
+```
 
-# creo una funcion que me preprocese el vector con characteres
-prepro_character_vector <- function(vec){
-  # saco corchetes
-  vec_sin_corchetes <- gsub("\\[|\\]", "", vec)
-  # separo por coma
-  vec_csv <- strsplit(vec_sin_corchetes, split = ",")
-  # unlist
-  vec_unlist <- unlist(vec_csv)
-  # saco apostrofes
-  vec_sin_apostrofes <- gsub("'", "", vec_unlist)
-  # saco el espacio inicial de algunos vectores
-  vec_sin_espacio <- gsub(" ", "", vec_sin_apostrofes)
-  # busco los valores unicos
-  vec_final <- unique(vec_sin_espacio)
-  return(vec_final)
-  }
+## c)
 
-generos <- prepro_character_vector(titles_train$genres)
+Para explorar lo pedido, se combinan el dataframe que contiene la informacion de las personas que ocupan rol de director o actor, y el dataframe que contiene la informacion del puntaje imdb, utilizando la columna llave "id". Luego se imprimen los 10 actores o directores que mejores y peores puntajes tienen.
+```{r}
+# Primero combino credits_train con titles_train utilizando la columna "id"
+titulos_creditos_combinados<- inner_join(titles_train, credits_train, by = "id")
 
-puntaje_promedio <- rep(0, length(generos))
+# Veo los 10 actores o directores que mejores puntajes tienen
+titulos_creditos_combinados %>%
+  group_by(titulos_creditos_combinados$person_id) %>%
+  summarise(mean = mean(imdb_score)) %>%
+  top_n(10)
 
-for (i in 1:nrow(titles_train)) {
-  is_in_genero <- generos %in% prepro_character_vector(titles_train$genres[i])
-  index_genero <- which(is_in_genero ==T)
-  for (j in 1:length(index_genero)) {
-    puntaje_promedio[index_genero[j]] <- puntaje_promedio[index_genero[j]] + titles_train$imdb_score[i]
-  }
-} 
-
-
-# plotear
-ggplot(titles_train, aes(x=genres, y=imdb_score, fill=genres)) + 
-  geom_violin()
+# Veo los 10 actores o directores que peores puntajes tienen
+titulos_creditos_combinados %>%
+  group_by(titulos_creditos_combinados$person_id) %>%
+  summarise(mean = mean(imdb_score)) %>%
+  top_n(-10)
 
 ```
+
+
+
+-----
 
 En el punto 4 fijar un parametro de penalizacion
