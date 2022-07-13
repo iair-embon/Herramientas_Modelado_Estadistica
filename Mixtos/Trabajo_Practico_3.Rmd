@@ -202,6 +202,73 @@ titles_train %>%
     xlim(0,250000)
 ```
 
+# 2
+
+Agarro el df que tenia los paises en una coluna, y agrupo todos los que son menores de 5 en la categoria "otros"
+```{r}
+titles_train_trans_OtrosPaises <- titles_train_trans %>%
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
+  separate_rows(production_countries, sep = ',') %>% 
+  filter(production_countries != '',!is.na(imdb_score)) %>%
+  mutate(production_countries = fct_lump_min(production_countries, 5, other_level = "Otros"))
+```
+
+## a
+
+Corro un modelo lineal para predecir el puntaje de imdb con production_countries. El modelo es de efectos fijos.
+```{r}
+m_EfectosFijos <- lm(imdb_score ~ production_countries, data = titles_train_trans_OtrosPaises)
+
+summary(m_EfectosFijos)
+```
+
+## b
+
+Corro un modelo lineal multiple mixto para predecir el puntaje de imdb con production_countries. El modelo tiene la intercept como efecto fijo, mas un efecto aleatorio por production_countries.
+```{r}
+library(lme4)
+m_InterceptAleatoria <- lmer(imdb_score ~ (1|production_countries), data = titles_train_trans_OtrosPaises)
+
+summary(m_InterceptAleatoria)
+ranef(m_InterceptAleatoria)
+```
+
+## c
+
+Uilizando el script realizado por el profesor en clase, grafico las intercepts fijas y aleatorias 
+```{r}
+# calculo en numero de casos de production_countries
+n_casos_production_countries = titles_train_trans_OtrosPaises %>% 
+  group_by(production_countries) %>% 
+  summarise(num_cases = n()) %>% 
+  pull(num_cases)
+
+# Obtengo intercepts aleatorios con fit_3
+lmm_intercepts = ranef(m_InterceptAleatoria)[['production_countries']][,1] +fixef(m_InterceptAleatoria)[['(Intercept)']]
+
+# Obtengo intercepts fijos con fit_1
+fixed_intercepts = as.array(m_EfectosFijos$coefficients) 
+# le sumo la intercept a cada beta del modelo fijo para que esten mas cercanos a las intercept del modelo mixto y los pueda comparar
+fixed_intercepts = c(fixed_intercepts[1],
+                     as.array(m_EfectosFijos$coefficients)[2:length(fixed_intercepts)]+fixed_intercepts[1])
+
+# Grafico efectos fijos vs efectos aleatorios, incluyendo el tamano de muestra como size
+tibble(lmm = lmm_intercepts, 
+       fixed = fixed_intercepts, 
+       num_cases = n_casos_production_countries,
+       pr_count = sort(unique(titles_train_trans_OtrosPaises$production_countries))) %>%
+  mutate(rn = row_number()) %>% 
+  pivot_longer(c(fixed, lmm)) %>% 
+  ggplot(aes(x = rn, y = value, label= pr_count, color = name)) +
+  geom_point(aes(size = num_cases), alpha = 0.5) +
+  geom_text(hjust=0, vjust=0) +
+  theme_bw()
+
+## En el grafico se puede ver que los paises que tienen una mayor cantidad de casos los afecta menos si se utiliza un modelo de efectos aleatorios o un modelo de efectos fijos. Cuando los paises tienen pocos casos, desde el modelo de efectos aleatorios, se acercan mas hacia la media, en comparacion con lo que hace con esos mismos paises el modelo de efectos fijos. 
+```
+
+
+
 -----
 
 En el punto 4 fijar un parametro de penalizacion
