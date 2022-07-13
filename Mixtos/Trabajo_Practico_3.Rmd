@@ -256,6 +256,7 @@ mediana_titles %>%
   ylab('Median score') + xlab('Words') +
   coord_flip()
 ```
+Quedaron algunas stopwords de otros idiomas como el español que no fueron captadas por el dataframe de stopwords que utilizamos. Para eliminarlas habria que utilizar alguna referencia de stopwords con mayor representacion multilinguistica. 
 
 # 2
 
