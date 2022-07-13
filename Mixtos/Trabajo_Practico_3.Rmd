@@ -213,7 +213,7 @@ titles_train_trans_OtrosPaises <- titles_train_trans %>%
   mutate(production_countries = fct_lump_min(production_countries, 5, other_level = "Otros"))
 ```
 
-## a
+## a)
 
 Corro un modelo lineal para predecir el puntaje de imdb con production_countries. El modelo es de efectos fijos.
 ```{r}
@@ -222,7 +222,7 @@ m_EfectosFijos <- lm(imdb_score ~ production_countries, data = titles_train_tran
 summary(m_EfectosFijos)
 ```
 
-## b
+## b)
 
 Corro un modelo lineal multiple mixto para predecir el puntaje de imdb con production_countries. El modelo tiene la intercept como efecto fijo, mas un efecto aleatorio por production_countries.
 ```{r}
@@ -233,7 +233,7 @@ summary(m_InterceptAleatoria)
 ranef(m_InterceptAleatoria)
 ```
 
-## c
+## c)
 
 Uilizando el script realizado por el profesor en clase, grafico las intercepts fijas y aleatorias 
 ```{r}
@@ -267,7 +267,60 @@ tibble(lmm = lmm_intercepts,
 ## En el grafico se puede ver que los paises que tienen una mayor cantidad de casos los afecta menos si se utiliza un modelo de efectos aleatorios o un modelo de efectos fijos. Cuando los paises tienen pocos casos, desde el modelo de efectos aleatorios, se acercan mas hacia la media, en comparacion con lo que hace con esos mismos paises el modelo de efectos fijos. 
 ```
 
+# 3
 
+## a)
+
+Agregamos al modelo del item 2b (el de la intercept aleatoria por paises) el predictor release_year, y luego decidimos si valio la pena utilizando anova 
+```{r}
+# corro el modelo
+m2_InterceptAleatoria_release_year <- lmer(imdb_score ~ release_year + (1|production_countries), data = titles_train_trans_OtrosPaises)
+
+# veo los resultados
+summary(m2_InterceptAleatoria_release_year)
+ranef(m2_InterceptAleatoria_release_year)
+
+# decido si vale la pena sumar al modelo la variable release_year usando anova
+anova(m_InterceptAleatoria,
+      m2_InterceptAleatoria_release_year)
+
+# basado en el resultado del anova, pareceria que si valdria la pena agregar release_year al modelo del item 2b
+```
+
+## b)
+
+Separo en datos de entrenamiento y de testeo y comparo m_InterceptAleatoria y m2_InterceptAleatoria_release_year y selecciono el que tenga un menor error cuadratico medio en los datos del testeo.
+```{r}
+# divido en datos de entrenamiento y de testeo
+entrenamiento <- titles_train_trans_OtrosPaises %>%
+  slice_sample(prop = 0.8)
+
+testeo <- titles_train_trans_OtrosPaises %>%
+  slice(-pull(entrenamiento,X))
+
+# entreno los modelos en la data de entrenamiento
+
+m_InterceptAleatoria_entrenamiento <- lmer(imdb_score ~ (1|production_countries), data = entrenamiento)
+
+m2_InterceptAleatoria_release_year_entrenamiento <- lmer(imdb_score ~ release_year + (1|production_countries), data = entrenamiento)
+
+# predigo usando la data de testeo con el primer modelo
+predicciones_m <- predict(m_InterceptAleatoria_entrenamiento, testeo)
+
+# predigo usando la data de testeo con el segundo modelo
+predicciones_m2 <- predict(m2_InterceptAleatoria_release_year_entrenamiento, testeo)
+
+# creo una funcion que calcule el error cuadratico medio
+error_cuadratico_medio <- function(y_predic, y){
+  error <- mean((y - y_predic)**2)
+  return(error)
+}
+
+error_cuadratico_medio_m <- error_cuadratico_medio(predicciones_m, testeo$imdb_score)
+error_cuadratico_medio_m2 <- error_cuadratico_medio(predicciones_m2, testeo$imdb_score)
+```
+
+## c) 
 
 -----
 
