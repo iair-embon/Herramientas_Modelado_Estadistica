@@ -90,8 +90,7 @@ Solo falta normalizar la columna correspondiente a los paises encargados de la p
 titles_train %>% 
   mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
   separate_rows(production_countries, sep = ',') %>% 
-  pull(production_countries) %>%
-  unique() %>% length()
+  distinct(id, .keep_all = T)
 ```
 
 Podemos comprobar tambien la frecuencia de cada pais para ver que tan concentrados estan los datos alrededor de determinados paises. 
@@ -140,11 +139,13 @@ titles_train_trans <- titles_train_trans %>% mutate(dummy = 1) %>%
 ## a)
 
 ```{r}
-titles_train_trans %>%
-  
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% filter(genres != '') %>%
   ggplot(
-    aes(x = )
-  )
+    aes(x = genres, y = imdb_score)
+  ) +
+    geom_boxplot()
 ```
 
 
