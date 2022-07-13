@@ -175,7 +175,7 @@ for (i in 1:nrow(titles_train)) {
   for (j in 1:length(index_genero)) {
     puntaje_promedio[index_genero[j]] <- puntaje_promedio[index_genero[j]] + titles_train$imdb_score[i]
   }
-} # tira un error, hasta i =  a 3 lo probe y funciona bien, en algun momento se rompe
+} 
 
 
 # plotear
