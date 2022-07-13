@@ -202,6 +202,61 @@ titles_train %>%
     xlim(0,250000)
 ```
 
+## e)
+
+```{r}
+library(tidytext)
+```
+
+Primero armo un nuevo dataframe con las palabras tokenizadas de los titulos de las peliculas.
+
+```{r}
+data("stop_words")
+
+token_titles <- titles_train %>%
+  #Convierto los titulos de las peliculas en string porque esta como factor
+  mutate(title = as.character(title)) %>%
+  #Saco unicamente las columnas que me interesan que son el id, el titulo y el puntaje.
+  select(id, title, imdb_score) %>%
+  #Tokenizo la columna del titulo
+  unnest_tokens(palabras, title) %>% 
+  #Agrupo por id
+  group_by(id) %>%
+  #Calculo la posicion de cada palabra en el titulo aprovechando que agrupe por id
+  mutate(word_number = row_number()) %>%
+  #Elimino las stopwords
+  filter(!palabras %in% stop_words$word) %>%
+  ungroup()
+```
+
+Calculo ahora la mediana de puntaje para cada palabra y me quedo con aquellas palabras que aparezcan mas de una determinada cantidad de veces. Para definir esto ultimo primero miramos un histograma en escala logaritmica del eje y para ver mejor el patron.
+
+```{r}
+token_titles %>% count(palabras) %>% 
+  ggplot(aes(x = n)) + 
+  geom_histogram() +
+  scale_y_log10()
+```
+
+Vamos a suponer que una palabra tuvo que haber aparecido por lo menos 15 veces para ser contabilizada con lo cual filtramos las palabras con menos de 15 apariciones. Luego de lo cual podemos filtrar los titulos que no tienen puntaje de imdb, agrupamos por palabra y calculamos la mediana para graficar.
+
+```{r}
+mediana_titles <- token_titles %>%
+  filter(
+    palabras %in% (token_titles %>% count(palabras) %>% filter(n >= 15) %>% pull(palabras))
+  ) %>%
+  filter(!is.na(imdb_score)) %>%
+  group_by(palabras) %>%
+  summarise(mediana = median(imdb_score))
+
+mediana_titles %>%
+  ggplot(aes(x = reorder(palabras, -mediana), y = mediana)) +
+  geom_segment(aes(x = reorder(palabras, -mediana), xend = reorder(palabras, -mediana), y = 5, yend = mediana)) +
+  geom_point() +
+  ylab('Median score') + xlab('Words') +
+  coord_flip()
+```
+
 # 2
 
 Agarro el df que tenia los paises en una coluna, y agrupo todos los que son menores de 5 en la categoria "otros"
