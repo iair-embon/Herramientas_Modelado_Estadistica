@@ -320,7 +320,7 @@ error_cuadratico_medio_m <- error_cuadratico_medio(predicciones_m, testeo$imdb_s
 error_cuadratico_medio_m2 <- error_cuadratico_medio(predicciones_m2, testeo$imdb_score)
 ```
 
-## c) Mientras que el anova muestra una significancia estadistica al agregar el predictor release_year con respecto al modelo que no tiene este predictor, el error cuadratico medio al comparar ambos predictores no pareciera ser abismal. El anova mide como impacta el hecho de agregar un predictor (release_year) en los residuales. En este caso, impacto de manera significativa. Sin embargo, el error cuadratico medio, que evalua que tan bien predice el modelo, pareciera no variar en gran medida al agregar el predictor "release_year".
+## c) Mientras que el anova muestra una significancia estadistica al agregar el predictor release_year con respecto al modelo que no tiene este predictor, el error cuadratico medio al comparar ambos predictores no pareciera ser abismal. El anova mide como impacta el hecho de agregar un predictor (release_year) en los residuales. En este caso, impacto de manera significativa. Sin embargo, el error cuadratico medio, que evalua que tan bien predice el modelo, pareciera no variar en gran medida al agregar el predictor "release_year". El error cuadratico medio es una metrica predictiva. Ademas el anova supone una cierta distrubicion, con ciertos grados de libertad, es decir, es una metrica parametrica. A diferencia del error cuadratico medio, que es no parametrico.
 
 -----
 
