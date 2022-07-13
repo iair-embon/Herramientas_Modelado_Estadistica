@@ -85,13 +85,13 @@ titles_train_trans <- titles_train_trans %>% mutate(cant_genres = rowSums(across
 Solo falta normalizar la columna correspondiente a los paises encargados de la produccion. Sin embargo hay demasiados paises involucrados, muchos mas que en el caso de los generos lo que nos dejaria con demasiadas columnas con muchos valores en 0. 
 
 ```{r}
-titles_train %>% 
+titles_train_trans <-  titles_train_trans %>% 
   mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
   separate_rows(production_countries, sep = ',') %>% 
   distinct(id, .keep_all = T)
 ```
 
-Podemos comprobar tambien la frecuencia de cada pais para ver que tan concentrados estan los datos alrededor de determinados paises. 
+Si quisieramos ir por la otra via podemos comprobar tambien la frecuencia de cada pais para ver que tan concentrados estan los datos alrededor de determinados paises. 
 
 ```{r}
 titles_train %>% 
@@ -106,7 +106,7 @@ titles_train %>%
 Vemos que hay unos pocos paises que concentrar la mayoria de los datos. Generamos entonces 10 factores y el resto quedan como "otros".
 
 ```{r}
-titles_train_trans <- titles_train_trans %>%
+titles_train_countries_wide <- titles_train_trans %>%
   mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
   separate_rows(production_countries, sep = ',') %>% 
   filter(production_countries != '') %>%
@@ -116,7 +116,7 @@ titles_train_trans <- titles_train_trans %>%
 Podemos comprobar de nuevo como queda la distribucion de factores posterior a esta manipulacion.
 
 ```{r}
-titles_train_trans %>% count(production_countries) %>% 
+titles_train_countries_wide %>% count(production_countries) %>% 
   ggplot(aes(x = production_countries, y = n)) +
   geom_col()
 ```
@@ -125,7 +125,7 @@ El factor 'Otros' recopila bastantes valores. Puede que mas adelante sea mas con
 Ahora si podemos replicar el abordaje que seguimos con el genero y convertir cada factor en una columna separada. Lo unico que hay que hacer es eliminar los duplicados porque hay peliculas que titulos repetidos dado que tenian distintos paises asignados pero estos distintos paises se convirtieron en la misma categoria dejando a las filas como repetidas. 
 
 ```{r}
-titles_train_trans <- titles_train_trans %>% mutate(dummy = 1) %>% 
+titles_train_countries_wide <- titles_train_trans %>% mutate(dummy = 1) %>% 
   distinct() %>%
   pivot_wider(names_from = production_countries, values_from = dummy) %>% 
   mutate(
