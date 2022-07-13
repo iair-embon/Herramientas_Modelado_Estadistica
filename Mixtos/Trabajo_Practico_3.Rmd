@@ -51,8 +51,6 @@ titles_train %>%
   mutate(dummy = 1) %>% filter(genres != '') %>% 
   slice_sample(n = 10) %>%
   select(title, genres, dummy)
-  pivot_wider(names_from = genres, values_from = dummy) %>% 
-  mutate(across(comedy:sport, ~ replace_na(.x, 0)))
 ```
 
 Por ultimo vamos a usar la funcion `pivor_wider` para convertir el dataframe de formato long como esta ahora (con filas repetidas para distintos titulos) a formato wide donde cada genero corresponda a una columna con valores dados por la columna dummy. 
