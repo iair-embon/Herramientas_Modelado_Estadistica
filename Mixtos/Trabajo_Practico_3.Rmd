@@ -90,6 +90,8 @@ titles_train_trans <- titles_train_trans %>%
 
 
 ## a)
+
+Exploramos el genero en base al puntaje imdb
 ```{r}
 titles_train %>% 
   mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
@@ -113,7 +115,7 @@ titles_train %>%
    
 ```
 
-Ahora lo hacemos en base al genero
+Ahora exploramos el puntaje a lo largo de los años teniendo en cuenta el genero
 ```{r}
 titles_train %>% 
   mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
