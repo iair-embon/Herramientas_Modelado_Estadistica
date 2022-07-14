@@ -379,6 +379,8 @@ df_predicciones %>%
   xlab('Release Year') + ylab('Prediccion') +
   scale_color_discrete('Valor de k')
 ```
+Cuando armamos el modelo los niveles de k mas bajos no lograron ajustarse correctamente por lo que la funcion elevo k al nivel minimo y por eso no se ven diferencias con las curvas de los valores mas bajos. 
+
 
 ## b)
 
@@ -410,7 +412,7 @@ rmse_gam <- lapply(
       error_cuadratico = (predicciones - true_value)^2
            ) %>%
     summarise(
-      rmse = sqrt(sum(error_cuadratico, na.rm = T))
+      rmse = sqrt(mean(error_cuadratico, na.rm = T))
     )
 ) %>% 
   bind_rows() %>%
@@ -423,10 +425,90 @@ rmse_gam %>%
   ggplot(aes(x = k, y = rmse)) +
   geom_point() + geom_line()
 ```
-
-Y calculamos el valor que minimiza.
+Igual que antes los valores k mas bajos (menores a 3) terminan llevandose a un mismo valor minimo de k por la funcion por lo que no hay diferencias en esos RMSE. Despues de visualizar calculamos el valor que minimiza.
 
 ```{r}
 rmse_gam$k[which.min(rmse_gam$rmse)]
 ```
+
+# 5)
+
+```{r}
+library(rsample)
+set.seed(4567)
+```
+
+Para encontrar el k optimo de cada modelo vamos a utilizar un approach similar al del ejercicio 4 utilizando la misma division de datos.
+En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo.
+
+```{r}
+grilla_k <- seq(1,50)
+
+k_optimo_finder <- function(modelo_gam, potenciales_k){
+  
+  #Primero se itera por todos los potenciales valores de k
+  map(potenciales_k,
+      ~ gam( #Genero una cantidad de modelos igual a la cantidad de k candidatos
+        as.formula(modelo_gam), 
+        data = gam_train) 
+  ) %>%
+    map(
+      ~ predict(.x, gam_test) - gam_test$imdb_score #Calculo la diferencia con la prediccion para cada potencial k sobre el conjunto de testeo
+    ) %>%
+    map( #Calculo el RMSE para ese k
+      ~ sqrt(
+      mean(.x^2, na.rm = T)
+           )
+    ) %>%
+    unlist() %>% #Convierto la lista en un vector
+    which.min() %>% #Calculo el indice del valor k optimo
+    potenciales_k[.] #
+}
+```
+
+Con esta funcion ya hecha podemos aplicarla a los distintos modelos para llegar al modelo con los parametros optimos. Vamos a generar entonces una lista de strings que correspondan a las formulas de los distintos modelos que querramos ajustar. De esta manera podemos iterar sobre esa lista de strings e ir comprobando el parametro optimo de k para cada modelo. 
+
+```{r}
+modelos_candidatos <- 'template'
+map(modelos_candidatos,
+    ~k_optimo_finder(.x, grilla_k)
+    )
+modelos_candidatos_optimizados <- ''
+```
+
+
+Para cada modelo con los parametros optimos calculamos el RMSE segun 10-fold cross validation y nos quedamos con el que tenga el mejor desempeño. Generamos para esto una funcion.
+
+```{r}
+rmse_fun <- function(datos, gam_formula){
+  #Esta funcion toma dos argumentos
+  # -los datos para usar en la validacion cruzada
+  # -una string que representa la formula del gam
+  
+  objeto_rsplit <- vfold_cv(datos, v = 10) 
+  objeto_rsplit$splits %>%
+  map(#En el mismo llamado vamos a predecir ajustando el modelo en el primer parametro
+    ~ predict(
+      gam(as.formula(gam_formula), data = analysis(.x)), #Armo el modelo
+      assessment(.x) #Saco las predicciones para el set de testeo
+      ) - assessment(.x)$imdb_score #Le resto el valor real para calcular el error 
+  ) %>%
+  map(
+    ~ sqrt(
+      sum(.x^2, na.rm = T)/length(.x)
+           )
+      ) %>%
+    unlist() #Convertimos el resultado en un vector
+}
+```
+
+Ahora para aplicar la funcion tenemos que crear una lista de strings que correspondan a las formulas de los modelos con los parametros optimos ya seteados. Iteramos por esta lista y calculamos para cada caso el RMSE 
+
+```{r}
+map(
+  modelos_candidatos_optimizados,
+  ~rmse_fun(titles_train_trans, .x)
+)
+```
+
 
