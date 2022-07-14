@@ -258,6 +258,84 @@ mediana_titles %>%
 ```
 Quedaron algunas stopwords de otros idiomas como el español que no fueron captadas por el dataframe de stopwords que utilizamos. Para eliminarlas habria que utilizar alguna referencia de stopwords con mayor representacion multilinguistica. 
 
+## Exploramos otras variables que nos interesan
+
+Exploro type y el puntaje imdb
+```{r}
+table(titles_train$type)
+
+titles_train %>% 
+  filter(!is.na(imdb_score)) %>%
+  ggplot(aes(x=type, y=imdb_score)) + 
+    geom_boxplot()
+```
+
+Exploro type y el puntaje imdb, segun el genero
+```{r}
+titles_train %>% 
+  mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
+  separate_rows(genres, sep = ',') %>% 
+  filter(genres != '', !is.na(imdb_score)) %>%
+  ggplot(aes(x=type, y=imdb_score, fill= genres)) + 
+    geom_boxplot()
+```
+
+Exploro el puntaje imdb en relacion a los paises
+```{r}
+titles_train_trans %>%
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
+  separate_rows(production_countries, sep = ',') %>% 
+  filter(production_countries != '', !is.na(imdb_score)) %>%
+  mutate(production_countries = fct_lump_n(production_countries, 10, other_level = "Otros")) %>%
+  ggplot(aes(x=production_countries, y=imdb_score)) + 
+    geom_boxplot()
+```
+Exploro el puntaje imdb por pais en el tiempo
+```{r}
+titles_train_trans %>%
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
+  separate_rows(production_countries, sep = ',') %>% 
+  filter(production_countries != '', !is.na(imdb_score)) %>%
+  mutate(production_countries = fct_lump_n(production_countries, 10, other_level = "Otros")) %>%
+  ggplot(aes(x=release_year, y=imdb_score, color = production_countries)) +
+    geom_line() +
+    facet_wrap("production_countries") +
+   theme(axis.text.x = element_text(angle = 45, hjust=1))
+   
+```
+Exploro la variable runtime en relacion al puntaje imdb
+```{r}
+library(ggExtra)
+
+p <- titles_train_trans %>%
+  filter( !is.na(imdb_score)) %>%
+  ggplot(aes(x=runtime, y=imdb_score)) +
+      geom_point() +
+      theme(legend.position="none")
+
+ggMarginal(p, margins = 'both', color="purple", size=4)
+```
+Exploro la variable seasons en relacion al puntaje imdb
+```{r}
+library(ggExtra)
+
+p <- titles_train_trans %>%
+  filter(!is.na(imdb_score), !is.na(seasons)) %>%
+  ggplot(aes(x=seasons, y=imdb_score)) +
+      geom_point() +
+      theme(legend.position="none")
+
+ggMarginal(p, margins = 'both', color="purple", size=4)
+```
+
+Exploro el puntaje imdb en relacion al age_certification
+```{r}
+titles_train_trans %>%
+  filter(!is.na(imdb_score),!is.na(age_certification)) %>%
+  ggplot(aes(x=age_certification, y=imdb_score)) + 
+    geom_boxplot()
+```
+
 # 2
 
 Agarro el df que tenia los paises en una coluna, y agrupo todos los que son menores de 5 en la categoria "otros"
