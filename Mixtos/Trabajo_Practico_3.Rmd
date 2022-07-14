@@ -77,57 +77,17 @@ titles_train_trans <- titles_train_trans %>% mutate(cant_genres = rowSums(across
 
 Solo falta normalizar la columna correspondiente a los paises encargados de la produccion. Sin embargo hay demasiados paises involucrados, muchos mas que en el caso de los generos lo que nos dejaria con demasiadas columnas con muchos valores en 0. 
 ```{r}
-titles_train_trans <-  titles_train_trans %>% 
+titles_train_trans <- titles_train_trans %>% 
   mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
-  separate_rows(production_countries, sep = ',') %>% 
-  distinct(id, .keep_all = T)
-```
-
-<<<<<<< HEAD
-Podemos comprobar tambien la frecuencia de cada pais para ver que tan concentrados estan los datos alrededor de determinados paises. 
-=======
-Si quisieramos ir por la otra via podemos comprobar tambien la frecuencia de cada pais para ver que tan concentrados estan los datos alrededor de determinados paises. 
-
->>>>>>> 2b4f452e03a2f57fd95c8871a1a28b1e3d056fdb
-```{r}
-titles_train %>% 
-  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
-  separate_rows(production_countries, sep = ',') %>% 
-  filter(production_countries != '') %>%
-  count(production_countries) %>% 
-  ggplot(aes(x = production_countries, y = n)) +
-  geom_col() + theme(axis.text.x = element_blank())
-```
-
-Vemos que hay unos pocos paises que concentran la mayoria de los datos. Generamos entonces 10 factores y el resto quedan como "otros".
-```{r}
-titles_train_countries_wide <- titles_train_trans %>%
-  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
-  separate_rows(production_countries, sep = ',') %>% 
-  filter(production_countries != '') %>%
-  mutate(production_countries = fct_lump_n(production_countries, 10, other_level = "Otros"))
-```
-
-Podemos comprobar de nuevo como queda la distribucion de factores posterior a esta manipulacion.
-```{r}
-titles_train_countries_wide %>% count(production_countries) %>% 
-  ggplot(aes(x = production_countries, y = n)) +
-  geom_col()
-```
-
-El factor 'Otros' recopila bastantes valores. Puede que mas adelante sea mas conveniente crear una sola columna que sea "US" u "Otros" para condensar mejor la distribucion pero ahora procedemos de esta manera. 
-
-Ahora si podemos replicar el abordaje que seguimos con el genero y convertir cada factor en una columna separada. Lo unico que hay que hacer es eliminar los duplicados porque hay peliculas que titulos repetidos dado que tenian distintos paises asignados pero estos distintos paises se convirtieron en la misma categoria dejando a las filas como repetidas. 
-```{r}
-titles_train_countries_wide <- titles_train_trans %>% 
-  mutate(dummy = 1) %>% 
-  na_if("") %>%
-  distinct() %>%
-  pivot_wider(names_from = production_countries, values_from = dummy) %>% 
   mutate(
-    across(any_of(levels(titles_train_trans$production_countries)), ~ replace_na(.x, 0))
-    )
+    production_countries = strsplit(production_countries, ','),
+    production_countries = lapply(production_countries, sort),
+    production_countries = as.character(production_countries)
+  ) %>%
+  unnest(cols = production_countries) %>%
+  mutate(production_countries = str_replace_all(production_countries,"[^A-Z,]",""))
 ```
+
 
 ## a)
 ```{r}
@@ -256,6 +216,7 @@ mediana_titles %>%
   ylab('Median score') + xlab('Words') +
   coord_flip()
 ```
+
 Quedaron algunas stopwords de otros idiomas como el español que no fueron captadas por el dataframe de stopwords que utilizamos. Para eliminarlas habria que utilizar alguna referencia de stopwords con mayor representacion multilinguistica. 
 
 ## Exploramos otras variables que nos interesan
@@ -341,8 +302,6 @@ titles_train_trans %>%
 Agarro el df que tenia los paises en una coluna, y agrupo todos los que son menores de 5 en la categoria "otros"
 ```{r}
 titles_train_trans_OtrosPaises <- titles_train_trans %>%
-  mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
-  separate_rows(production_countries, sep = ',') %>% 
   filter(production_countries != '',!is.na(imdb_score)) %>%
   mutate(production_countries = fct_lump_min(production_countries, 5, other_level = "Otros"))
 ```
@@ -371,6 +330,7 @@ ranef(m_InterceptAleatoria)
 
 Uilizando el script realizado por el profesor en clase, grafico las intercepts fijas y aleatorias 
 ```{r}
+library(ggrepel)
 # calculo en numero de casos de production_countries
 n_casos_production_countries = titles_train_trans_OtrosPaises %>% 
   group_by(production_countries) %>% 
@@ -395,8 +355,9 @@ tibble(lmm = lmm_intercepts,
   pivot_longer(c(fixed, lmm)) %>% 
   ggplot(aes(x = rn, y = value, label= pr_count, color = name)) +
   geom_point(aes(size = num_cases), alpha = 0.5) +
-  geom_text(hjust=0, vjust=0) +
-  theme_bw()
+  geom_text_repel(aes(label = pr_count)) +
+  theme_bw() +
+  theme(legend.position = 'bottom')
 
 ## En el grafico se puede ver que los paises que tienen una mayor cantidad de casos los afecta menos si se utiliza un modelo de efectos aleatorios o un modelo de efectos fijos. Cuando los paises tienen pocos casos, desde el modelo de efectos aleatorios, se acercan mas hacia la media, en comparacion con lo que hace con esos mismos paises el modelo de efectos fijos. 
 ```
@@ -454,8 +415,96 @@ error_cuadratico_medio_m <- error_cuadratico_medio(predicciones_m, testeo$imdb_s
 error_cuadratico_medio_m2 <- error_cuadratico_medio(predicciones_m2, testeo$imdb_score)
 ```
 
-## c) Mientras que el anova muestra una significancia estadistica al agregar el predictor release_year con respecto al modelo que no tiene este predictor, el error cuadratico medio al comparar ambos predictores no pareciera ser abismal. El anova mide como impacta el hecho de agregar un predictor (release_year) en los residuales. En este caso, impacto de manera significativa. Sin embargo, el error cuadratico medio, que evalua que tan bien predice el modelo, pareciera no variar en gran medida al agregar el predictor "release_year". El error cuadratico medio es una metrica predictiva. Ademas el anova supone una cierta distrubicion, con ciertos grados de libertad, es decir, es una metrica parametrica. A diferencia del error cuadratico medio, que es no parametrico.
+## c) 
+
+Mientras que el anova muestra una significancia estadistica al agregar el predictor release_year con respecto al modelo que no tiene este predictor, el error cuadratico medio al comparar ambos predictores no pareciera ser abismal. El anova mide como impacta el hecho de agregar un predictor (release_year) en los residuales. En este caso, impacto de manera significativa. Sin embargo, el error cuadratico medio, que evalua que tan bien predice el modelo, pareciera no variar en gran medida al agregar el predictor "release_year". El error cuadratico medio es una metrica predictiva. Ademas el anova supone una cierta distrubicion, con ciertos grados de libertad, es decir, es una metrica parametrica. A diferencia del error cuadratico medio, que es no parametrico.
 
 -----
 
-En el punto 4 fijar un parametro de penalizacion
+# 4)
+
+## a)
+
+```{r}
+#Definimos los posibles valores de k para comparar
+k_values <- c(1,2,3,5,10,20,50)
+library(mgcv)
+
+#Ajusto el modelo con cada valor del vector de posibles valores de k y voy guardando en una lista
+gam_fits <- lapply(
+  k_values,
+  function(x) gam(imdb_score ~ s(release_year, bs = 'cr', k = x), data = titles_train_trans)
+)
+
+#Armo una lista con las predicciones
+lista_predicciones <- lapply(spam, 
+                function(x) predict(x, titles_train_trans)
+                )
+
+#Combino la lista en un solo dataframe
+df_predicciones <- tibble(prediccion = unlist(lista_predicciones)) %>% 
+  mutate(
+    k = rep(k_values, each = nrow(titles_train_trans)),
+    covariada = rep(titles_train_trans$release_year, length(k_values))
+    )
+
+#Grafico los datos de entrenamiento y las predicciones para cada valor de k
+df_predicciones %>%
+  ggplot(
+    aes(x = covariada, y = prediccion, color = as.factor(k))
+         ) +
+  geom_line() +
+  xlab('Release Year') + ylab('Prediccion') +
+  scale_color_discrete('Valor de k')
+```
+
+## b)
+
+Generamos la particion
+
+```{r}
+#Planto la semilla
+set.seed(1234)
+
+#Separo en entrenamiento y testeo
+gam_train <- titles_train_trans %>% 
+  slice_sample(prop = 0.8)
+gam_test <- titles_train_trans %>%
+  filter(
+    !id %in% gam_train$id
+  )
+```
+
+Calculo el RMSE para cada caso
+
+```{r}
+rmse_gam <- lapply(
+  k_values,
+  function(x) gam(imdb_score ~ s(release_year, bs = 'cr', k = x), data = gam_train) %>%
+    predict(gam_test) %>%
+    tibble(predicciones = .) %>% 
+    mutate(
+      true_value = gam_test %>% pull(imdb_score),
+      error_cuadratico = (predicciones - true_value)^2
+           ) %>%
+    summarise(
+      rmse = sqrt(sum(error_cuadratico, na.rm = T))
+    )
+) %>% 
+  bind_rows() %>%
+  mutate(k = k_values)
+```
+Ahora simplemente visualizamos
+
+```{r}
+rmse_gam %>%
+  ggplot(aes(x = k, y = rmse)) +
+  geom_point() + geom_line()
+```
+
+Y calculamos el valor que minimiza.
+
+```{r}
+rmse_gam$k[which.min(rmse_gam$rmse)]
+```
+
