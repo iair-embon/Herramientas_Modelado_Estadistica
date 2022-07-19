@@ -522,15 +522,20 @@ set.seed(4567)
 Para encontrar el k optimo de cada modelo vamos a utilizar un approach similar al del ejercicio 4 utilizando la misma division de datos.
 En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k por lo cual no necesariamente la combinacion optima de valores de k para modelos con mas de una variable es aquella donde k es igual en todos los casos. Sin embargo la complejidad con la crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables que son `release_year` y `runtime`. 
 
-```{r}
-grilla_k <- round(seq(1,50, length.out = 25))
+Para esto vamos a armar una lista con todas las combinaciones posibles de 25 valores k entre 1 y 50.
 
-tidyr::expand_grid(grilla_k, grilla_k)
+```{r}
+grilla_k <- round(seq(1,50, length.out = 25)) #Una grilla de valores k de 1 hasta 50 con longitud total 25
+
+df_grilla_k <- list(grilla_k) #lista con los valores posibles de k para una variable
+df_grilla_k_2 <- tidyr::expand_grid(release_k = grilla_k, runtime_k = grilla_k) %>% as.list() #lista con los valores posibles de k para dos variables
 
 k_optimo_finder <- function(modelo_gam, potenciales_k){
+  #modelo_gam = string que contenga la formula para usar en la funcion gam con argumentos de k dentro de la funcion s iguales a .x y .y
+  #potenciales_k = lista con las combinaciones de posibles valores k o los unicos valores de k 
   
   #Primero se itera por todos los potenciales valores de k
-  map(potenciales_k,
+  pmap(potenciales_k,
       ~ gam( #Genero una cantidad de modelos igual a la cantidad de k candidatos
         as.formula(modelo_gam), 
         data = gam_train) 
@@ -545,7 +550,11 @@ k_optimo_finder <- function(modelo_gam, potenciales_k){
     ) %>%
     unlist() %>% #Convierto la lista en un vector
     which.min() %>% #Calculo el indice del valor k optimo
-    potenciales_k[.] #
+    unlist( #Convierto el resultado de nuevo en un vector
+      lapply(
+        potenciales_k, function(x) x[.] #Itero por todos los elementos de la lista para sacar el indice de los valores optimos de k
+        )
+           ) 
 }
 ```
 
