@@ -7,6 +7,7 @@ output: html_document
 Cargo librerias que vamos a utilizar
 ```{r}
 library(tidyverse)
+library(mgcv)
 ```
 
 Cargo los datos
@@ -519,10 +520,11 @@ set.seed(4567)
 ```
 
 Para encontrar el k optimo de cada modelo vamos a utilizar un approach similar al del ejercicio 4 utilizando la misma division de datos.
-En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo.
+En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k por lo cual no necesariamente la combinacion optima de valores de k para modelos con mas de una variable es aquella donde k es igual en todos los casos. Sin embargo la complejidad con la crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables que son `release_year` y `runtime`. 
 
 ```{r}
-grilla_k <- seq(1,50)
+grilla_k <- seq(1,100)
+
 
 k_optimo_finder <- function(modelo_gam, potenciales_k){
   
@@ -530,6 +532,7 @@ k_optimo_finder <- function(modelo_gam, potenciales_k){
   map(potenciales_k,
       ~ gam( #Genero una cantidad de modelos igual a la cantidad de k candidatos
         as.formula(modelo_gam), 
+        family = betar(link='logit'), #Usamos la familia beta porque el rango de la variable de respuesta esta restringido
         data = gam_train) 
   ) %>%
     map(
@@ -546,16 +549,32 @@ k_optimo_finder <- function(modelo_gam, potenciales_k){
 }
 ```
 
+Asignamos como factor las variables que vayamos a usar en el GAM. Tambien transformo la variable de respuestas para pasarla a escala [0,1] dado que los puntajes no pueden superar el valor de 0 o de 10 con lo cual dividiendo por el maximo llevamos la escala a este rango y podemos ajustar un modelo de la familia beta aprovechando el rango acotado de los datos. 
+
+```{r}
+gam_train <- gam_train %>% 
+  mutate(
+    type = as.factor(type)
+         ) 
+```
+
 Con esta funcion ya hecha podemos aplicarla a los distintos modelos para llegar al modelo con los parametros optimos. Vamos a generar entonces una lista de strings que correspondan a las formulas de los distintos modelos que querramos ajustar. De esta manera podemos iterar sobre esa lista de strings e ir comprobando el parametro optimo de k para cada modelo. 
 
 ```{r}
-modelos_candidatos <- 'template'
+modelos_candidatos <- list(
+  'type',
+  'runtime',
+  'release_year',
+  'genres',
+  'production_countries',
+  'age_certificaction'
+)
+
 map(modelos_candidatos,
     ~k_optimo_finder(.x, grilla_k)
     )
 modelos_candidatos_optimizados <- ''
 ```
-
 
 Para cada modelo con los parametros optimos calculamos el RMSE segun 10-fold cross validation y nos quedamos con el que tenga el mejor desempeño. Generamos para esto una funcion.
 
@@ -569,7 +588,7 @@ rmse_fun <- function(datos, gam_formula){
   objeto_rsplit$splits %>%
   map(#En el mismo llamado vamos a predecir ajustando el modelo en el primer parametro
     ~ predict(
-      gam(as.formula(gam_formula), data = analysis(.x)), #Armo el modelo
+      gam(as.formula(gam_formula), family = betar(link='logit'), data = analysis(.x)), #Armo el modelo
       assessment(.x) #Saco las predicciones para el set de testeo
       ) - assessment(.x)$imdb_score #Le resto el valor real para calcular el error 
   ) %>%
@@ -582,7 +601,9 @@ rmse_fun <- function(datos, gam_formula){
 }
 ```
 
-Ahora para aplicar la funcion tenemos que crear una lista de strings que correspondan a las formulas de los modelos con los parametros optimos ya seteados. Iteramos por esta lista y calculamos para cada caso el RMSE 
+Ahora para aplicar la funcion tenemos que crear una lista de strings que correspondan a las formulas de los modelos con los parametros optimos ya seteados. Iteramos por esta lista y calculamos para cada caso el RMSE. 
+
+Vamos a correr 2 variantes. La primera variante implica dejar los argumentos por default de la funcion `s()`. La segunda variante implica utilizar el valor de k optimo segun fue elegido anteriormente. 
 
 ```{r}
 map(
@@ -591,4 +612,35 @@ map(
 )
 ```
 
+
+
+
+```{r}
+gam(imdb_score ~ s(release_year, bs = 'cr') + type,
+    data = gam_train %>% mutate(age_certification = as.factor(age_certification))) %>%
+  predict(gam_test) %>%
+  tibble(predicciones = .) %>% 
+    mutate(
+      true_value = gam_test %>% pull(imdb_score),
+      error_cuadratico = (predicciones - true_value)^2
+           ) %>%
+    summarise(
+      rmse = sqrt(mean(error_cuadratico, na.rm = T))
+    )
+```
+
+
+```{r}
+gam(imdb_score ~ s(release_year, bs = 'cr', by = type) + type,
+    data = gam_train %>% mutate(age_certification = as.factor(age_certification))) %>%
+  predict(gam_test) %>%
+  tibble(predicciones = .) %>% 
+    mutate(
+      true_value = gam_test %>% pull(imdb_score),
+      error_cuadratico = (predicciones - true_value)^2
+           ) %>%
+    summarise(
+      rmse = sqrt(mean(error_cuadratico, na.rm = T))
+    )
+```
 
