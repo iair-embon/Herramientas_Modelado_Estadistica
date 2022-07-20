@@ -525,7 +525,7 @@ En este caso sin embargo ponemos todo dentro de una funcion para correrlo con lo
 ```{r}
 grilla_k <- round(seq(1,50, length.out = 25))
 
-tidyr::expand_grid(grilla_k, grilla_k)
+lista_k <- tidyr::expand_grid(grilla_k, grilla_k) %>% as.list()
 
 k_optimo_finder <- function(modelo_gam, potenciales_k){
   
@@ -554,8 +554,10 @@ Asignamos como factor las variables que vayamos a usar en el GAM. Tambien transf
 ```{r}
 gam_train <- gam_train %>% 
   mutate(
-    type = as.factor(type)
-         ) 
+    type = as.factor(type),
+    production_countries = as.factor(production_countries),
+    age_certification = as.factor(age_certification)
+         )
 ```
 
 Con esta funcion ya hecha podemos aplicarla a los distintos modelos para llegar al modelo con los parametros optimos. Vamos a generar entonces una lista de strings que correspondan a las formulas de los distintos modelos que querramos ajustar. De esta manera podemos iterar sobre esa lista de strings e ir comprobando el parametro optimo de k para cada modelo. 
@@ -584,9 +586,8 @@ modelos_candidatos <- list(
 )
 
 map(modelos_candidatos,
-    ~k_optimo_finder(.x, grilla_k)
+    ~k_optimo_finder(.x, lista_k)
     )
-modelos_candidatos_optimizados <- ''
 ```
 
 Para cada modelo con los parametros optimos calculamos el RMSE segun 10-fold cross validation y nos quedamos con el que tenga el mejor desempeño. Generamos para esto una funcion.
