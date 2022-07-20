@@ -1,0 +1,29 @@
+"imdb_score ~ s(release_year, bs = 'cr', k = .x)"
+"imdb_score ~ s(runtime, bs = 'cr', k = .x)"
+"imdb_score ~ s(release_year, bs = 'cr', k = .x) + type"
+"imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + type"
+"imdb_score ~ s(runtime, bs = 'cr', k = .x) + type"
+"imdb_score ~ s(runtime, bs = 'cr', by = 'type', k = .x) + type"
+"imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y)"
+"imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y) + type"
+"imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(runtime, bs = 'cr', by = 'type' , k = .y) + type"
+"imdb_score ~ s(imdb_votes, bs = 'cr', k = .x)"
+"imdb_score ~ s(imdb_votes, bs = 'cr', k = .x) + type"
+"imdb_score ~ s(imdb_votes, bs = 'cr', by = 'type', k = .x) + type"
+"imdb_score ~ s(imdb_votes, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y)"
+"imdb_score ~ s(imdb_votes, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y) + type"
+"imdb_score ~ s(imdb_votes, bs = 'cr', by = 'type', k = .x) + s(runtime, bs = 'cr', by = 'type' , k = .y) + type"
+"imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y)"
+"imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y) + type"
+"imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type"
+"imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type + seasons + genres + production_countries + age_certification "
+
+#runtime (dentro de la s)
+#release_year (dentro de la s)
+#imdb_votes (dentro de la s)
+# type (afuera de la s) 
+
+seasons (dentro de la s)
+genres (afuera de la s)
+production_countries (afuera de la s)
+age_certification (afuera de la s)
