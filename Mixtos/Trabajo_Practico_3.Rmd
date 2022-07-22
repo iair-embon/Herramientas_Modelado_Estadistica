@@ -523,7 +523,7 @@ set.seed(4567)
 
 Para encontrar el k optimo de cada modelo vamos a utilizar un approach similar al del ejercicio 4 utilizando la misma division de datos.
 <<<<<<< HEAD
-En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k eso significa que tenemos que encontrar la combinacion de valores de k que llega al resultado optimo. Sin embargo la complejidad con la crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables que son `release_year` y `runtime`. 
+En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k eso significa que tenemos que encontrar la combinacion de valores de k que llega al resultado optimo. Sin embargo la complejidad con la que crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables como maximo que son `release_year` y `runtime`. 
 
 Para esto vamos a armar una lista con todas las combinaciones posibles de 25 valores k entre 1 y 50. Dado que algunos modelos tienen que explorar unicamente una grilla de valores k unidimensional y otros modelos tienen que explorar una grilla multidimensional vamos a implementar en la funcion la capacidad de lidiar con cualquier caso pasando siempre el mismo objeto. De lo contrario habria que crear una correspondia entre espacio de parametros y modelo para que la iteracion se haga segun esa correspondencia. Tomando eso en cuenta utilizamos unicamente la version mas grande que es la lista con las combinaciones de dos posibles valores de k. 
 =======
@@ -538,8 +538,6 @@ grilla_k <- round(seq(1,50, length.out = 25)) #Una grilla de valores k de 1 hast
 
 lista_k <- tidyr::expand_grid(release_k = grilla_k, runtime_k = grilla_k) %>% as.list() #lista con los valores posibles de k para dos variables
 
-df_grilla_k <- list(grilla_k) #lista con los valores posibles de k para una variable
-df_grilla_k_2 <- tidyr::expand_grid(release_k = grilla_k, runtime_k = grilla_k) %>% as.list() #lista con los valores posibles de k para dos variables
 
 k_optimo_finder <- function(modelo_gam, potenciales_k){
   #modelo_gam = string que contenga la formula para usar en la funcion gam con argumentos de k dentro de la funcion s iguales a .x y .y
@@ -564,7 +562,7 @@ k_optimo_finder <- function(modelo_gam, potenciales_k){
 }
 ```
 
-Asignamos como factor las variables que vayamos a usar en el GAM. Tambien transformo la variable de respuestas para pasarla a escala [0,1] dado que los puntajes no pueden superar el valor de 0 o de 10 con lo cual dividiendo por el maximo llevamos la escala a este rango y podemos ajustar un modelo de la familia beta aprovechando el rango acotado de los datos. 
+Asignamos como factor las variables que vayamos a usar en el GAM. 
 
 ```{r}
 gam_train <- gam_train %>% 
@@ -579,11 +577,6 @@ Con esta funcion ya hecha, podemos aplicarla a los distintos modelos para llegar
 
 ```{r, warning=FALSE}
 modelos_candidatos <- list(
-<<<<<<< HEAD
-  )
-
-resultado_k_optimo <- map(modelos_candidatos,
-=======
   "imdb_score ~ s(release_year, bs = 'cr', k = .x)",
   "imdb_score ~ s(runtime, bs = 'cr', k = .x)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + type",
@@ -602,17 +595,63 @@ resultado_k_optimo <- map(modelos_candidatos,
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y) + type",
   "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + seasons + genres + production_countries + age_certification ",
-  "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries",
-    "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ genres",
-    "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries + genres",
-  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + genres + production_countries")
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + production_countries + age_certification ",
+    "imdb_score ~ s(release_year, bs = 'cr', k = .x)",
+    "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries",
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + production_countries"
+  )
 
-map(modelos_candidatos,
->>>>>>> 3632466016695ce2cfe7bb0922a179ff8fed5f03
+resultado_k_optimo <-  map(modelos_candidatos,
     ~k_optimo_finder(.x, lista_k)
     )
 ```
+
+Para asignar de manera automatica el valor k adecuado para cada modelo asi como si el valor corresponde a un solo k o a una combinacion de k. Para eso iteramos por todos los modelos y para cada caso nos vamos a fijar. Si tiene ".y" es que hay un dos k y tenemos que tomar segun el indice del primer y segundo elemento de la lista de posibles k que se le paso a la funcion `k_optimo_finder`, caso contrario tiene un solo k y se toma segun el indice del primer elemento de la lista. 
+
+```{r}
+modelos_optimizados <- list()
+for(i in seq_along(modelos_candidatos)){
+  k_optimo_por_modelo <- ifelse(
+    str_detect(
+      modelos_candidatos[[i]],
+      '\\.y'
+    ) == TRUE,
+    paste(
+      lista_k[[1]][resultado_k_optimo[[i]]], lista_k[[2]][resultado_k_optimo[[i]]], sep = ','
+      ),
+    c(
+      lista_k[[1]][resultado_k_optimo[[i]]]
+    )
+  )
+  
+  k_optimo_por_modelo <- str_split(k_optimo_por_modelo,',')[[1]]
+  k_optimo_por_modelo <- as.character(k_optimo_por_modelo)
+  
+  modelos_optimizados[[i]] <- ifelse(
+    length(k_optimo_por_modelo) > 1,
+    str_replace_all(modelos_candidatos[[i]],
+                c('\\.x' = k_optimo_por_modelo [1], '\\.y' = k_optimo_por_modelo[2])
+                ),
+    str_replace(modelos_candidatos[[i]],
+                '\\.x',
+                k_optimo_por_modelo)
+  )
+}
+```
+
+
+
+```{r}
+titles_train_trans <- titles_train_trans %>% 
+  mutate(
+    type = as.factor(type),
+    production_countries = as.factor(production_countries),
+    age_certification = as.factor(age_certification)
+         )
+```
+
+
+
 
 Para cada modelo con los parametros optimos calculamos el RMSE segun 10-fold cross validation y nos quedamos con el que tenga el mejor desempeño. Generamos para esto una funcion.
 
@@ -622,7 +661,7 @@ rmse_fun <- function(datos, gam_formula){
   # -los datos para usar en la validacion cruzada
   # -una string que representa la formula del gam
   
-  objeto_rsplit <- vfold_cv(datos, v = 10) 
+  objeto_rsplit <- vfold_cv(datos, v = 10, strata = type) 
   objeto_rsplit$splits %>%
   map(#En el mismo llamado vamos a predecir ajustando el modelo en el primer parametro
     ~ predict(
@@ -643,26 +682,26 @@ Ahora para aplicar la funcion tenemos que crear una lista de strings que corresp
 
 Vamos a correr 2 variantes. La primera variante implica dejar los argumentos por default de la funcion `s()`. La segunda variante implica utilizar el valor de k optimo segun fue elegido anteriormente. 
 
-```{r}
-map(
-  modelos_candidatos_optimizados,
+```{r, warning=FALSE}
+rmse_todos_modelos <- map(
+  modelos_optimizados,
   ~rmse_fun(titles_train_trans, .x)
 )
+
+tibble(
+  rmse = rmse_todos_modelos %>% unlist(),
+  cv_fold = rep(1:10, length(rmse_todos_modelos)),
+  modelo = rep(modelos_optimizados %>% unlist(), each = 10)
+) %>%
+  ggplot(
+    aes(x = cv_fold, y = rmse, color = modelo)
+  ) +
+  geom_line() + theme(legend.position = 'none')
+
+
+
 ```
 
-```{r}
-gam(imdb_score ~ s(runtime, bs = 'cr'),
-    data = gam_train %>% mutate(imdb_score = imdb_score/10)) %>%
-  predict(gam_test) %>%
-  tibble(predicciones = .) %>% 
-    mutate(
-      true_value = gam_test %>% mutate(imdb_score = imdb_score/10) %>% pull(imdb_score),
-      error_cuadratico = (predicciones - true_value)^2
-           ) %>%
-    summarise(
-      rmse = sqrt(mean(error_cuadratico, na.rm = T))
-    )
-```
 
 ```{r}
 gam(imdb_score ~ s(runtime, bs = 'cr'), family = betar(link = 'logit'),
