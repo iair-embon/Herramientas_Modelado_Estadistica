@@ -461,8 +461,7 @@ df_predicciones %>%
   xlab('Release Year') + ylab('Prediccion') +
   scale_color_discrete('Valor de k')
 ```
-Cuando armamos el modelo los niveles de k mas bajos no lograron ajustarse correctamente por lo que la funcion elevo k al nivel minimo y por eso no se ven diferencias con las curvas de los valores mas bajos. 
-
+Cuando armamos el modelo, los niveles de k mas bajos no lograron ajustarse correctamente por lo que la funcion elevo k al nivel minimo, y por eso no se ven diferencias con las curvas de los valores mas bajos. 
 
 ## b)
 
@@ -500,6 +499,7 @@ rmse_gam <- lapply(
   bind_rows() %>%
   mutate(k = k_values)
 ```
+
 Ahora simplemente visualizamos
 
 ```{r}
@@ -507,7 +507,8 @@ rmse_gam %>%
   ggplot(aes(x = k, y = rmse)) +
   geom_point() + geom_line()
 ```
-Igual que antes los valores k mas bajos (menores a 3) terminan llevandose a un mismo valor minimo de k por la funcion por lo que no hay diferencias en esos RMSE. Despues de visualizar calculamos el valor que minimiza.
+
+Igual que antes los valores k mas bajos (menores a 3) terminan llevandose a un mismo valor minimo de k por la funcion. En consecuencia, no hay diferencias en esos RMSE. Despues de visualizar calculamos el valor que minimiza.
 
 ```{r}
 rmse_gam$k[which.min(rmse_gam$rmse)]
@@ -521,9 +522,9 @@ set.seed(4567)
 ```
 
 Para encontrar el k optimo de cada modelo vamos a utilizar un approach similar al del ejercicio 4 utilizando la misma division de datos.
-En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k por lo cual no necesariamente la combinacion optima de valores de k para modelos con mas de una variable es aquella donde k es igual en todos los casos. Sin embargo la complejidad con la crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables que son `release_year` y `runtime`. 
+En este caso, sin embargo, ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k por lo cual no necesariamente la combinacion optima de valores de k para modelos con mas de una variable es aquella donde k es igual en todos los casos. Sin embargo, la complejidad con la que crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo, la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables que son `release_year` y `runtime`. 
 
-Para esto vamos a armar una lista con todas las combinaciones posibles de 25 valores k entre 1 y 50.
+Para esto, vamos a armar una lista con todas las combinaciones posibles de 25 valores k entre 1 y 50.
 
 ```{r}
 grilla_k <- round(seq(1,50, length.out = 25)) #Una grilla de valores k de 1 hasta 50 con longitud total 25
@@ -531,11 +532,9 @@ grilla_k <- round(seq(1,50, length.out = 25)) #Una grilla de valores k de 1 hast
 df_grilla_k <- list(grilla_k) #lista con los valores posibles de k para una variable
 df_grilla_k_2 <- tidyr::expand_grid(release_k = grilla_k, runtime_k = grilla_k) %>% as.list() #lista con los valores posibles de k para dos variables
 
-
 k_optimo_finder <- function(modelo_gam, potenciales_k){
   #modelo_gam = string que contenga la formula para usar en la funcion gam con argumentos de k dentro de la funcion s iguales a .x y .y
   #potenciales_k = lista con las combinaciones de posibles valores k o los unicos valores de k 
-  
   #Primero se itera por todos los potenciales valores de k
   pmap(potenciales_k,
       ~ gam( #Genero una cantidad de modelos igual a la cantidad de k candidatos
@@ -571,33 +570,33 @@ gam_train <- gam_train %>%
          )
 ```
 
-Con esta funcion ya hecha podemos aplicarla a los distintos modelos para llegar al modelo con los parametros optimos. Vamos a generar entonces una lista de strings que correspondan a las formulas de los distintos modelos que querramos ajustar. De esta manera podemos iterar sobre esa lista de strings e ir comprobando el parametro optimo de k para cada modelo. 
+Con esta funcion ya hecha, podemos aplicarla a los distintos modelos para llegar al modelo con los parametros optimos. Vamos a generar entonces una lista de strings que correspondan a las formulas de los distintos modelos que querramos ajustar. De esta manera, podemos iterar sobre esa lista de strings e ir comprobando el parametro optimo de k para cada modelo. 
 
 ```{r}
 modelos_candidatos <- list(
   "imdb_score ~ s(release_year, bs = 'cr', k = .x)",
   "imdb_score ~ s(runtime, bs = 'cr', k = .x)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + type",
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + type",
   "imdb_score ~ s(runtime, bs = 'cr', k = .x) + type",
-  "imdb_score ~ s(runtime, bs = 'cr', by = 'type', k = .x) + type",
+  "imdb_score ~ s(runtime, bs = 'cr', by = type, k = .x) + type",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(runtime, bs = 'cr', by = 'type' , k = .y) + type",
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(runtime, bs = 'cr', by = type , k = .y) + type",
   "imdb_score ~ s(imdb_votes, bs = 'cr', k = .x)",
   "imdb_score ~ s(imdb_votes, bs = 'cr', k = .x) + type",
-  "imdb_score ~ s(imdb_votes, bs = 'cr', by = 'type', k = .x) + type",
+  "imdb_score ~ s(imdb_votes, bs = 'cr', by = type, k = .x) + type",
   "imdb_score ~ s(imdb_votes, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y)",
   "imdb_score ~ s(imdb_votes, bs = 'cr', k = .x) + s(runtime, bs = 'cr', k = .y) + type",
-  "imdb_score ~ s(imdb_votes, bs = 'cr', by = 'type', k = .x) + s(runtime, bs = 'cr', by = 'type' , k = .y) + type",
+  "imdb_score ~ s(imdb_votes, bs = 'cr', by = type, k = .x) + s(runtime, bs = 'cr', by = type , k = .y) + type",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type + seasons + genres + production_countries + age_certification ",
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type",
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + seasons + genres + production_countries + age_certification ",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries",
     "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ genres",
     "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries + genres",
-  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type + genres + production_countries")
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + genres + production_countries")
 
 map(modelos_candidatos,
     ~k_optimo_finder(.x, lista_k)
@@ -640,9 +639,6 @@ map(
 )
 ```
 
-
-
-
 ```{r}
 gam(imdb_score ~ s(runtime, bs = 'cr'),
     data = gam_train %>% mutate(imdb_score = imdb_score/10)) %>%
@@ -657,7 +653,6 @@ gam(imdb_score ~ s(runtime, bs = 'cr'),
     )
 ```
 
-
 ```{r}
 gam(imdb_score ~ s(runtime, bs = 'cr'), family = betar(link = 'logit'),
     data = gam_train %>% mutate(imdb_score = imdb_score/10)) %>%
@@ -671,4 +666,3 @@ gam(imdb_score ~ s(runtime, bs = 'cr'), family = betar(link = 'logit'),
       rmse = sqrt(mean(error_cuadratico, na.rm = T))
     )
 ```
-
