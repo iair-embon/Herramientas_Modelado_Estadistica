@@ -535,20 +535,16 @@ Para esto, vamos a armar una lista con todas las combinaciones posibles de 25 va
 ```{r}
 grilla_k <- round(seq(1,50, length.out = 25)) #Una grilla de valores k de 1 hasta 50 con longitud total 25
 
-<<<<<<< HEAD
+
 lista_k <- tidyr::expand_grid(release_k = grilla_k, runtime_k = grilla_k) %>% as.list() #lista con los valores posibles de k para dos variables
-=======
+
 df_grilla_k <- list(grilla_k) #lista con los valores posibles de k para una variable
 df_grilla_k_2 <- tidyr::expand_grid(release_k = grilla_k, runtime_k = grilla_k) %>% as.list() #lista con los valores posibles de k para dos variables
->>>>>>> 3632466016695ce2cfe7bb0922a179ff8fed5f03
 
 k_optimo_finder <- function(modelo_gam, potenciales_k){
   #modelo_gam = string que contenga la formula para usar en la funcion gam con argumentos de k dentro de la funcion s iguales a .x y .y
   #potenciales_k = lista con las combinaciones de posibles valores k o los unicos valores de k 
-<<<<<<< HEAD
-  print(modelo_gam)
-=======
->>>>>>> 3632466016695ce2cfe7bb0922a179ff8fed5f03
+
   #Primero se itera por todos los potenciales valores de k
   pmap(potenciales_k,
       ~ gam( #Genero una cantidad de modelos igual a la cantidad de k candidatos
