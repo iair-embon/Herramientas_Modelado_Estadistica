@@ -23,7 +23,7 @@ credits_train <- read.csv(root$find_file("Mixtos/credits_train.csv"))
 
 Primero tengo que normalizar la base de datos de entrenamiento que tiene muchos generos metidos en una sola columna. Queremos que cada genero sea una sola columna y que tenga un valor de 1 indicando si esa fila pertenece a ese genero y 0 de otra manera. 
 
-Para esto en primer lugar eliminamos de las filas con el genero de las peliculas a todos los caracteres que no corresponden con letras o comas. De esta manera deberiamos quedarnos con una estructura que sea "genero1, genero2, ..., generoN". De ahora en mas comprobamos el procedimiento extrayendo 10 datos aleatoriamente del dataframe resultante posterior a la manipulacion.
+Para esto en primer lugar eliminamos de las filas de la columna genero todos los caracteres que no corresponden con letras o comas. De esta manera deberiamos quedarnos con una estructura que sea "genero1, genero2, ..., generoN". De ahora en mas comprobamos el procedimiento extrayendo 10 datos aleatoriamente del dataframe resultante posterior a la manipulacion.
 ```{r}
 titles_train %>% 
   mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>%
@@ -40,7 +40,7 @@ titles_train %>%
   select(title, genres)
 ```
 
-Proximamente generamos una columna dummy nueva con todos valores de 1 para usar como valores cuando pasemos el dataframe a formato wide. Asimismo filtramos aquellas filas que quedaron sin ningun genero (sin caracteres) como consecuencia de la funcion `separate_rows`.
+Proximamente generamos una columna dummy nueva con todos valores de 1 para usar como valores cuando pasemos el dataframe a formato wide. Asi mismo filtramos aquellas filas que quedaron sin ningun genero (sin caracteres) como consecuencia de la funcion `separate_rows`.
 ```{r}
 titles_train %>% 
   mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
@@ -50,7 +50,7 @@ titles_train %>%
   select(title, genres, dummy)
 ```
 
-Por ultimo vamos a usar la funcion `pivor_wider` para convertir el dataframe de formato long (como esta ahora, con filas repetidas para distintos titulos) a formato wide donde cada genero corresponda a una columna con valores dados por la columna dummy. 
+Por ultimo, vamos a usar la funcion `pivor_wider` para convertir el dataframe de formato long (como esta ahora, con filas repetidas para distintos titulos) a formato wide, donde cada genero corresponda a una columna con valores dados por la columna dummy. 
 ```{r}
 titles_train %>% 
   mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
@@ -61,7 +61,7 @@ titles_train %>%
   select(title, comedy:sport)
 ```
 
-Finalmente reemplazamos aquellos valores que quedaron como `NA` con un 0 indicando que ese genero no pertenece a ese titulo y escribimos todo el procedimiento anterior en un solo bloque. 
+A continuacion, reemplazamos aquellos valores que quedaron como `NA` con un 0 indicando que ese genero no pertenece a ese titulo y escribimos todo el procedimiento anterior en un solo bloque. 
 ```{r}
 titles_train_trans <- titles_train %>% 
   mutate(genres = str_replace_all(genres,"[^A-Za-z,]","")) %>% 
@@ -71,12 +71,12 @@ titles_train_trans <- titles_train %>%
   mutate(across(comedy:sport, ~ replace_na(.x, 0))) 
 ```
 
-Por ultimo podria ser interesante tener una columna que cuente cuantos generos tiene un determinado titulo y para esto vamos a agregar una columna nueva sumando los 1 para todas las columnas correspondientes a los distintos generos. 
+Por ultimo, podria ser interesante tener una columna que cuente cuantos generos tiene un determinado titulo y para esto vamos a agregar una columna nueva sumando los 1 para todas las columnas correspondientes a los distintos generos. 
 ```{r}
 titles_train_trans <- titles_train_trans %>% mutate(cant_genres = rowSums(across(comedy:sport)))
 ```
 
-Solo falta normalizar la columna correspondiente a los paises encargados de la produccion. Sin embargo hay demasiados paises involucrados, muchos mas que en el caso de los generos lo que nos dejaria con demasiadas columnas con muchos valores en 0. 
+Ahora queremos normalizar la columna correspondiente a los paises encargados de la produccion. Sin embargo, hay demasiados paises involucrados, muchos mas que en el caso de los generos, lo que nos dejaria con demasiadas columnas con muchos valores en 0. 
 ```{r}
 titles_train_trans <- titles_train_trans %>% 
   mutate(production_countries = str_replace_all(production_countries,"[^A-Za-z,]","")) %>% 
@@ -103,6 +103,7 @@ titles_train %>%
     geom_boxplot()+
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 ```
+
 ## b)
 
 Exploramos el puntaje a lo largo de los años
@@ -125,7 +126,6 @@ titles_train %>%
     geom_line() +
     facet_wrap("genres") +
    theme(axis.text.x = element_text(angle = 45, hjust=1))
-   
 ```
 
 ## c)
@@ -146,7 +146,6 @@ titulos_creditos_combinados %>%
   group_by(titulos_creditos_combinados$person_id) %>%
   summarise(mean = mean(imdb_score)) %>%
   top_n(-10)
-
 ```
 
 ## d)
@@ -172,7 +171,6 @@ library(tidytext)
 ```
 
 Primero armo un nuevo dataframe con las palabras tokenizadas de los titulos de las peliculas.
-
 ```{r}
 data("stop_words")
 
@@ -201,7 +199,7 @@ token_titles %>% count(palabras) %>%
   scale_y_log10()
 ```
 
-Vamos a suponer que una palabra tuvo que haber aparecido por lo menos 15 veces para ser contabilizada con lo cual filtramos las palabras con menos de 15 apariciones. Luego de lo cual podemos filtrar los titulos que no tienen puntaje de imdb, agrupamos por palabra y calculamos la mediana para graficar.
+Vamos a suponer que una palabra tuvo que haber aparecido por lo menos 15 veces para ser contabilizada con lo cual filtramos las palabras con menos de 15 apariciones. Luego de lo cual podemos filtrar los titulos que no tienen puntaje de imdb, luego agrupamos por palabra y calculamos la mediana para graficar.
 
 ```{r}
 mediana_titles <- token_titles %>%
@@ -254,6 +252,7 @@ titles_train_trans %>%
   ggplot(aes(x=production_countries, y=imdb_score)) + 
     geom_boxplot()
 ```
+
 Exploro el puntaje imdb por pais en el tiempo
 ```{r}
 titles_train_trans %>%
@@ -267,6 +266,7 @@ titles_train_trans %>%
    theme(axis.text.x = element_text(angle = 45, hjust=1))
    
 ```
+
 Exploro la variable runtime en relacion al puntaje imdb
 ```{r}
 library(ggExtra)
@@ -279,6 +279,7 @@ p <- titles_train_trans %>%
 
 ggMarginal(p, margins = 'both', color="purple", size=4)
 ```
+
 Exploro la variable seasons en relacion al puntaje imdb
 ```{r}
 library(ggExtra)
@@ -331,7 +332,7 @@ ranef(m_InterceptAleatoria)
 
 ## c)
 
-Uilizando el script realizado por el profesor en clase, grafico las intercepts fijas y aleatorias 
+Uilizando parte del script que uso el profesor en clase, grafico las intercepts fijas y aleatorias 
 ```{r}
 library(ggrepel)
 # calculo en numero de casos de production_countries
@@ -387,7 +388,7 @@ anova(m_InterceptAleatoria,
 
 ## b)
 
-Separo en datos de entrenamiento y de testeo y comparo m_InterceptAleatoria y m2_InterceptAleatoria_release_year y selecciono el que tenga un menor error cuadratico medio en los datos del testeo.
+Separo en datos de entrenamiento y de testeo, luego comparo m_InterceptAleatoria y m2_InterceptAleatoria_release_year, y por ultimo selecciono el que tenga un menor error cuadratico medio en los datos del testeo
 ```{r}
 # divido en datos de entrenamiento y de testeo
 entrenamiento <- titles_train_trans_OtrosPaises %>%
@@ -420,7 +421,7 @@ error_cuadratico_medio_m2 <- error_cuadratico_medio(predicciones_m2, testeo$imdb
 
 ## c) 
 
-Mientras que el anova muestra una significancia estadistica al agregar el predictor release_year con respecto al modelo que no tiene este predictor, el error cuadratico medio al comparar ambos predictores no pareciera ser abismal. El anova mide como impacta el hecho de agregar un predictor (release_year) en los residuales. En este caso, impacto de manera significativa. Sin embargo, el error cuadratico medio, que evalua que tan bien predice el modelo, pareciera no variar en gran medida al agregar el predictor "release_year". El error cuadratico medio es una metrica predictiva. Ademas el anova supone una cierta distrubicion, con ciertos grados de libertad, es decir, es una metrica parametrica. A diferencia del error cuadratico medio, que es no parametrico.
+Mientras que el anova permite observar una significancia estadistica al agregar el predictor release_year con respecto al modelo que no tiene este predictor, el error cuadratico medio al comparar ambos predictores no pareciera ser abismal. Si comparamos estos dos procedimientos, el anova mide como impacta el hecho de agregar un predictor (release_year) en los residuales. En este caso (el que observamos nosotros), impacto de manera significativa. Sin embargo, el error cuadratico medio, que evalua que tan bien predice el modelo, pareciera no variar en gran medida al agregar el predictor "release_year". El error cuadratico medio es una metrica predictiva. Ademas, el anova supone una cierta distrubicion, con ciertos grados de libertad, es decir, es una metrica parametrica. A diferencia del error cuadratico medio, que es no parametrico.
 
 -----
 
@@ -592,8 +593,11 @@ modelos_candidatos <- list(
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y) + type",
   "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type + seasons + genres + production_countries + age_certification "
-)
+  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type + seasons + genres + production_countries + age_certification ",
+  "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries",
+    "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ genres",
+    "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries + genres",
+  "imdb_score ~ s(release_year, bs = 'cr', by = 'type', k = .x) + s(imdb_votes, bs = 'cr', by = 'type' , k = .y) + type + genres + production_countries")
 
 map(modelos_candidatos,
     ~k_optimo_finder(.x, lista_k)
