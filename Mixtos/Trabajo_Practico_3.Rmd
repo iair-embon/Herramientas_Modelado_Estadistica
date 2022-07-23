@@ -432,7 +432,6 @@ Mientras que el anova permite observar una significancia estadistica al agregar 
 ```{r}
 #Definimos los posibles valores de k para comparar
 k_values <- c(1,2,3,5,10,20,50)
-library(mgcv)
 
 #Ajusto el modelo con cada valor del vector de posibles valores de k y voy guardando en una lista
 gam_fits <- lapply(
@@ -472,7 +471,7 @@ Generamos la particion
 set.seed(1234)
 
 #Separo en entrenamiento y testeo
-gam_train <- titles_train_trans %>% 
+gam_train <- titles_train_trans %>%
   slice_sample(prop = 0.8)
 gam_test <- titles_train_trans %>%
   filter(
@@ -522,15 +521,10 @@ set.seed(4567)
 ```
 
 Para encontrar el k optimo de cada modelo vamos a utilizar un approach similar al del ejercicio 4 utilizando la misma division de datos.
-<<<<<<< HEAD
 En este caso sin embargo ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k eso significa que tenemos que encontrar la combinacion de valores de k que llega al resultado optimo. Sin embargo la complejidad con la que crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables como maximo que son `release_year` y `runtime`. 
 
 Para esto vamos a armar una lista con todas las combinaciones posibles de 25 valores k entre 1 y 50. Dado que algunos modelos tienen que explorar unicamente una grilla de valores k unidimensional y otros modelos tienen que explorar una grilla multidimensional vamos a implementar en la funcion la capacidad de lidiar con cualquier caso pasando siempre el mismo objeto. De lo contrario habria que crear una correspondia entre espacio de parametros y modelo para que la iteracion se haga segun esa correspondencia. Tomando eso en cuenta utilizamos unicamente la version mas grande que es la lista con las combinaciones de dos posibles valores de k. 
-=======
-En este caso, sin embargo, ponemos todo dentro de una funcion para correrlo con los distintos modelos seleccionados. Necesitamos entonces una funcion que ajuste el modelo en los datos de entrenamiento variando el valor de k y compare las predicciones con el dataset de testeo para hallar el k optimo. Cada funcion puede tener distintos niveles del valor k por lo cual no necesariamente la combinacion optima de valores de k para modelos con mas de una variable es aquella donde k es igual en todos los casos. Sin embargo, la complejidad con la que crece el espacio de parametros posibles a explorar es la longitud de la grilla de posibles valores de k elevado a la cantidad de covariadas que tenga el modelo. Sin embargo, la mayoria de las variables que nos interesan no son continuas por lo que unicamente tenemos que estimar este parametro para 2 variables que son `release_year` y `runtime`. 
 
-Para esto, vamos a armar una lista con todas las combinaciones posibles de 25 valores k entre 1 y 50.
->>>>>>> 3632466016695ce2cfe7bb0922a179ff8fed5f03
 
 ```{r}
 grilla_k <- round(seq(1,50, length.out = 25)) #Una grilla de valores k de 1 hasta 50 con longitud total 25
@@ -562,15 +556,23 @@ k_optimo_finder <- function(modelo_gam, potenciales_k){
 }
 ```
 
-Asignamos como factor las variables que vayamos a usar en el GAM. 
+Vamos a hacer una nueva separacion de los datasets para trabajar. En este caso convertimos paises de produccion en una variable factorial donde colapsamos aquellos casos con pocas observaciones. como factor las variables que vayamos a usar en el GAM porque sino el modelo tira un error. 
 
 ```{r}
-gam_train <- gam_train %>% 
+gam_cv <- titles_train_trans %>%
   mutate(
     type = as.factor(type),
     production_countries = as.factor(production_countries),
-    age_certification = as.factor(age_certification)
-         )
+    age_certification = as.factor(age_certification),
+    production_countries = forcats::fct_lump(production_countries, prop = .05)
+         ) %>%
+  group_by(production_countries) 
+gam_train <- gam_cv %>%
+  slice_sample(prop = 0.8)
+gam_test <- gam_cv %>%
+  filter(
+    !id %in% gam_train$id
+  )
 ```
 
 Con esta funcion ya hecha, podemos aplicarla a los distintos modelos para llegar al modelo con los parametros optimos. Vamos a generar entonces una lista de strings que correspondan a las formulas de los distintos modelos que querramos ajustar. De esta manera, podemos iterar sobre esa lista de strings e ir comprobando el parametro optimo de k para cada modelo. 
@@ -595,9 +597,9 @@ modelos_candidatos <- list(
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y)",
   "imdb_score ~ s(release_year, bs = 'cr', k = .x) + s(imdb_votes, bs = 'cr', k = .y) + type",
   "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type",
-  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + production_countries + age_certification ",
+  "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + production_countries + age_certification",
     "imdb_score ~ s(release_year, bs = 'cr', k = .x)",
-    "imdb_score ~ s(release_year, bs = 'cr', k = .x)+ production_countries",
+    "imdb_score ~ s(release_year, bs = 'cr', k = .x) + production_countries",
   "imdb_score ~ s(release_year, bs = 'cr', by = type, k = .x) + s(imdb_votes, bs = 'cr', by = type , k = .y) + type + production_countries"
   )
 
@@ -606,50 +608,49 @@ resultado_k_optimo <-  map(modelos_candidatos,
     )
 ```
 
-Para asignar de manera automatica el valor k adecuado para cada modelo asi como si el valor corresponde a un solo k o a una combinacion de k. Para eso iteramos por todos los modelos y para cada caso nos vamos a fijar. Si tiene ".y" es que hay un dos k y tenemos que tomar segun el indice del primer y segundo elemento de la lista de posibles k que se le paso a la funcion `k_optimo_finder`, caso contrario tiene un solo k y se toma segun el indice del primer elemento de la lista. 
+Como resultado hay una lista donde cada elemento refiere al indice del objeto que le fue pasado a la funcion, en este caso `lista_k`, donde se encuentran el o los valores k optimos. 
+
+Para asignar de manera automatica el valor k adecuado para cada modelo asi como determinar si el valor corresponde a un solo k o a una combinacion de k tenemos que chequear las strings. Para eso iteramos por todos los modelos y para cada caso nos vamos a fijar si tiene ".y". En caso positivo es que hay un dos k y tenemos que tomar segun el indice del primer y segundo elemento de la lista de posibles k que se le paso a la funcion `k_optimo_finder`, caso contrario tiene un solo k y se toma segun el indice del primer elemento de la lista. 
+
 
 ```{r}
+#Creo una lista las strings de las formulas para los modelos con los valores de k reemplazados por aquellos optimos 
 modelos_optimizados <- list()
+
+#Itero por la lista de los modelos candidatos
 for(i in seq_along(modelos_candidatos)){
+  
+  #Alberga un vector atomico con el o los valores de k
   k_optimo_por_modelo <- ifelse(
-    str_detect(
-      modelos_candidatos[[i]],
-      '\\.y'
-    ) == TRUE,
-    paste(
+    str_detect( #Chequeo si en la string de la formula esta la string '.y' 
+      modelos_candidatos[[i]], #Selecciono la string de la formula correspondiente con el modelo de la interaccion actual. 
+      '\\.y' #Patron para tratar de encontrar ".y" escapando el punto
+    ) == TRUE, #Si lo encuentra significa que ese modelo utiliza dos valores k, sino tiene uno solo
+    paste(#Selecciono el iesimo valor del primer y segggundo elemento de la lista posibles k y los uno en una misma string
       lista_k[[1]][resultado_k_optimo[[i]]], lista_k[[2]][resultado_k_optimo[[i]]], sep = ','
       ),
-    c(
+    c(#En caso false selecciono el iesimo valor pero solo del primer elemento de la lista de posibles k
       lista_k[[1]][resultado_k_optimo[[i]]]
     )
   )
   
+  #Si el modelo tenia dos valores quedo como una sola string separada por ',' asi que lo convierto en un vector separando por ','
   k_optimo_por_modelo <- str_split(k_optimo_por_modelo,',')[[1]]
-  k_optimo_por_modelo <- as.character(k_optimo_por_modelo)
+  #Si el modelo tenia un solo valor entonces no hace nada mas que convertirlo en un caracter
+  #En ambos casos termino con un vector de caracteres
   
+  #Agrego la string de la formula reemplazando los valores en la lista correspondiente que cree al principio
   modelos_optimizados[[i]] <- ifelse(
-    length(k_optimo_por_modelo) > 1,
-    str_replace_all(modelos_candidatos[[i]],
-                c('\\.x' = k_optimo_por_modelo [1], '\\.y' = k_optimo_por_modelo[2])
+    length(k_optimo_por_modelo) > 1, #Chequeo la longitud del vector para ver si hay mas de un valor de k en consideracion
+    str_replace_all(modelos_candidatos[[i]], #Si hay mas de un k reemplazo en dos lugares
+                c('\\.x' = k_optimo_por_modelo[1], '\\.y' = k_optimo_por_modelo[2]) #Los '.x por el primer k y los '.y' po rel segundo
                 ),
-    str_replace(modelos_candidatos[[i]],
-                '\\.x',
-                k_optimo_por_modelo)
+    str_replace(modelos_candidatos[[i]], #Si hay un solo k reemplazo unicamente en un solo lugar
+                '\\.x', #Reemplazo el '.x' que tendria que tener una sola aparicion
+                k_optimo_por_modelo) #Se reemplaza por el vector donde esta alojado el k optimo sin seleccionar porque hay un solo valor
   )
 }
 ```
-
-
-
-```{r}
-titles_train_trans <- titles_train_trans %>% 
-  mutate(
-    type = as.factor(type),
-    production_countries = as.factor(production_countries),
-    age_certification = as.factor(age_certification)
-         )
-```
-
 
 
 
@@ -680,39 +681,68 @@ rmse_fun <- function(datos, gam_formula){
 
 Ahora para aplicar la funcion tenemos que crear una lista de strings que correspondan a las formulas de los modelos con los parametros optimos ya seteados. Iteramos por esta lista y calculamos para cada caso el RMSE. 
 
-Vamos a correr 2 variantes. La primera variante implica dejar los argumentos por default de la funcion `s()`. La segunda variante implica utilizar el valor de k optimo segun fue elegido anteriormente. 
+Vamos a correr 2 variantes. La primera variante implica dejar los argumentos por default de la funcion `s()`. La segunda variante implica utilizar el valor de k optimo segun fue elegido anteriormente. Para la primera variante hay que re-escribir los modelos eliminando las menciones al valor k. Lo hacemos a continuacion.
+
+```{r}
+modelos_automatizados <- str_replace_all(modelos_optimizados, ', k = \\d+', '') %>% as.list()
+```
+
+Ahora corremos la primera variante.
+
+```{r}
+rmse_automatica_todos_modelos <- map(
+  modelos_automatizados,
+  ~rmse_fun(
+    gam_cv %>% ungroup(), .x
+  )
+)
+```
+
+Corremos la segunda variante
 
 ```{r, warning=FALSE}
 rmse_todos_modelos <- map(
   modelos_optimizados,
-  ~rmse_fun(titles_train_trans, .x)
+  ~rmse_fun(gam_cv %>% ungroup(), .x)
+)
+```
+
+La idea ahora es armar un grafico donde comparemos por un lado la performance de los distintos modelos entre si y por otro lado entre la seleccion automatica del valor k que hace la funcion `s()` y la seleccion manual que implementamos nosotros. Para esto armamos un dataframe donde cada fila corresponda a un modelo, su respectivo RMSE y el fold en el que se obtuvo ese valor. Graficamos la media y el error estandard ordenando por el valor de la media de RMSE para tenre una idea de que modelo elegir.
+
+```{r}
+comparacion_performance <- tibble(
+  rmse = c(
+    rmse_todos_modelos %>% unlist(), 
+    rmse_automatica_todos_modelos %>% unlist()
+    ),
+  cv_fold = rep(1:10, length(rmse_todos_modelos)*2),
+  modelo = rep(
+    rep(modelos_optimizados %>% unlist(), each = 10),
+    2
+    ),
+  tipo_k = rep(c('manual','automatico'), each = length(modelos_optimizados)*10)
 )
 
-tibble(
-  rmse = rmse_todos_modelos %>% unlist(),
-  cv_fold = rep(1:10, length(rmse_todos_modelos)),
-  modelo = rep(modelos_optimizados %>% unlist(), each = 10)
-) %>%
+
+comparacion_performance %>%
+  mutate(class = fct_reorder(modelo, rmse, .fun='mean')) %>%
   ggplot(
-    aes(x = cv_fold, y = rmse, color = modelo)
+  aes(x = reorder(modelo, rmse), y = rmse, color = tipo_k)
+    ) +
+  stat_summary(position = position_dodge(.9)) + 
+  theme(
+    axis.text.y = element_blank() 
   ) +
-  geom_line() + theme(legend.position = 'none')
-
-
-
+  coord_flip()
 ```
+
+Ahora armamos un dataframe para ver bien cual es exactamente el modelo que tiene la menor media pero tambien graficamos el desvio de los datos para tratar de captar que tanta variacion hubo con los distintos folds. Asi finalmente podemos elegir el modelo que mas nos convence.
 
 
 ```{r}
-gam(imdb_score ~ s(runtime, bs = 'cr'), family = betar(link = 'logit'),
-    data = gam_train %>% mutate(imdb_score = imdb_score/10)) %>%
-  predict(gam_test) %>%
-  tibble(predicciones = .) %>% 
-    mutate(
-      true_value = gam_test %>% mutate(imdb_score = imdb_score/10) %>% pull(imdb_score),
-      error_cuadratico = (predicciones - true_value)^2
-           ) %>%
-    summarise(
-      rmse = sqrt(mean(error_cuadratico, na.rm = T))
-    )
+comparacion_performance %>%
+  group_by(modelo, tipo_k) %>%
+  summarise(media = mean(rmse), desvio = sd(rmse)) %>% arrange(media)
 ```
+
+
