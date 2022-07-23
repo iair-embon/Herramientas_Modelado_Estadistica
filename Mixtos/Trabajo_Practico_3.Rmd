@@ -707,7 +707,7 @@ rmse_todos_modelos <- map(
 )
 ```
 
-La idea ahora es armar un grafico donde comparemos por un lado la performance de los distintos modelos entre si y por otro lado entre la seleccion automatica del valor k que hace la funcion `s()` y la seleccion manual que implementamos nosotros. Para esto armamos un dataframe donde cada fila corresponda a un modelo, su respectivo RMSE y el fold en el que se obtuvo ese valor. Graficamos la media y el error estandard ordenando por el valor de la media de RMSE para tenre una idea de que modelo elegir.
+La idea ahora es armar un grafico donde comparemos por un lado la performance de los distintos modelos entre si y por otro lado entre la seleccion automatica del valor k que hace la funcion `s()` y la seleccion manual que implementamos nosotros. Para esto armamos un dataframe donde cada fila corresponda a un modelo, su respectivo RMSE y el fold en el que se obtuvo ese valor. Graficamos la media y el error estandard ordenando por el valor de la media de RMSE para tener una idea de que modelo elegir.
 
 ```{r}
 comparacion_performance <- tibble(
@@ -736,13 +736,40 @@ comparacion_performance %>%
   coord_flip()
 ```
 
-Ahora armamos un dataframe para ver bien cual es exactamente el modelo que tiene la menor media pero tambien graficamos el desvio de los datos para tratar de captar que tanta variacion hubo con los distintos folds. Asi finalmente podemos elegir el modelo que mas nos convence.
-
+Elegimos el que minimizo el error y que el k fue elegido de manera manual (son muy parecidos igualmente, es decir, el automatico y el manual).
+Tambien realizamos las predicciones, para luego guardarlas en un archivo .csv como pide la consigna 6
 
 ```{r}
-comparacion_performance %>%
+# primero vamos a cargar el excel de testeo titles_test.csv, el de  credits_test.csv no ya que no lo usamos. Luego, preprocesamos los datos de testeo para que las columnas del modelo que mejor ajusta tengan un tratamiento similar al que le hicimos a los datos de entrenamiento. Estas son imbd_votes, type y runtime. Aunque solamnete modificamos type.
+
+titles_test <- read.csv(root$find_file("Mixtos/titles_test.csv"))
+credits_test <- read.csv(root$find_file("Mixtos/credits_test.csv"))
+
+datos_testeo <- titles_test %>%
+  mutate(
+    type = as.factor(type))
+
+
+predicciones_finales <- comparacion_performance %>%
   group_by(modelo, tipo_k) %>%
-  summarise(media = mean(rmse), desvio = sd(rmse)) %>% arrange(media)
+  summarise(media = mean(rmse), desvio = sd(rmse)) %>% arrange(media) %>%
+  filter(tipo_k == "manual") %>%
+  ungroup() %>%
+  filter(row_number()==1) %>%
+  pull(modelo) %>% 
+  as.formula() %>%
+  gam(data = gam_cv) %>%
+  predict.gam(datos_testeo)
+
 ```
 
+
+# 6)
+
+Procedemos con el punto final.
+Guardo en un archivo llamado predicciones.csv para luego enviar al profesor de la materia
+
+```{r}
+write.table(predicciones,"Mixtos\\predicciones.csv",col.names = FALSE)
+```
 
