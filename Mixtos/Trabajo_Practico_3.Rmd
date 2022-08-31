@@ -770,6 +770,6 @@ Procedemos con el punto final.
 Guardo en un archivo llamado predicciones.csv para luego enviar al profesor de la materia
 
 ```{r}
-write.table(predicciones,"Mixtos\\predicciones.csv",col.names = FALSE)
+#write.table(predicciones,"Mixtos\\predicciones.csv",col.names = FALSE)
 ```
 
